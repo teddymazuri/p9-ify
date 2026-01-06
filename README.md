@@ -39,7 +39,7 @@ P9-ify handles the complex math of Kenyan statutory deductions:
 ## **🚀 Quick Start**
 
 1. **Clone the repository**  
-   git clone \[https://github.com/yourusername/p9-ify.git\](https://github.com/yourusername/p9-ify.git)
+   git clone (https://github.com/teddymazuri/p9-ify.git)
 
 2. Open the Application  
    Simply open index.html in any modern web browser (Chrome, Firefox, Safari, or Edge).  
