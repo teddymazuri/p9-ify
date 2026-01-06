@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard | P9-ify</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&display=swap" rel="stylesheet">
+    <link href="css/main.css" rel="stylesheet">
+    <link href="css/components.css" rel="stylesheet">
+</head>
+<body>
+    <nav class="navbar navbar-dark sticky-top">
+        <div class="container">
+            <div class="navbar-brand fw-bold d-flex align-items-center" onclick="location.href='index.html'">
+                <span class="fs-3">P9-ify</span>
+                <span class="ms-2 badge bg-success text-uppercase" style="font-size: 0.4em;">Multi-Month Engine</span>
+            </div>
+            <div class="d-flex align-items-center">
+                <a href="index.html" class="btn btn-outline-light btn-sm me-2">Home</a>
+                <form action="https://www.paypal.com/donate" method="post" target="_top">
+                    <button type="submit" class="btn btn-warning btn-sm fw-bold shadow-sm">Donate via PayPal</button>
+                </form>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container-fluid py-4">
+        <div class="row">
+            <!-- Sidebar Navigation -->
+            <div class="col-lg-2 d-print-none">
+                <div class="card p-3 sticky-top" style="top: 80px;">
+                    <div class="nav flex-column nav-pills" id="sidebar-nav">
+                        <button class="nav-link active mb-2 text-start" onclick="switchTab('employees')">👥 Employees</button>
+                        <button class="nav-link mb-2 text-start" onclick="switchTab('payroll')">💰 Payroll</button>
+                        <button class="nav-link mb-2 text-start" onclick="switchTab('p9')">📄 P9 Generator</button>
+                        <button class="nav-link mb-2 text-start" onclick="switchTab('payslips')">🧾 Payslips</button>
+                        <button class="nav-link mb-2 text-start" onclick="switchTab('settings')">⚙️ Settings</button>
+                        <hr>
+                        <button class="nav-link text-danger text-start small" onclick="StateManager.clearAllData()">⚠️ Reset All Data</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Main Content Area -->
+            <div class="col-lg-10">
+                <div id="tab-content">
+                    <!-- Content will be loaded dynamically -->
+                    <div class="text-center py-5">
+                        <div class="spinner-border text-success" role="status">
+                            <span class="visually-hidden">Loading...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Container -->
+    <div id="modal-container"></div>
+
+    <!-- Bootstrap & Custom JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="js/utils.js"></script>
+    <script src="js/state.js"></script>
+    <script src="js/employees.js"></script>
+    <script src="js/payroll.js"></script>
+    <script src="js/p9generator.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/app.js"></script>
+
+    <!-- PDF Library-->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+
+</body>
+</html>
