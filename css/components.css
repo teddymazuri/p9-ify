@@ -1,0 +1,103 @@
+/* Payslip Styles */
+.payslip-border {
+    border: 2px solid var(--primary-green);
+    border-radius: 8px;
+    padding: 25px;
+    background: #fff;
+}
+
+.payslip-header {
+    border-bottom: 2px solid var(--primary-green);
+    padding-bottom: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.payslip-amount {
+    font-size: 2rem;
+    font-weight: 800;
+    color: var(--primary-green);
+}
+
+.payslip-breakdown .row {
+    border-bottom: 1px dashed #e5e7eb;
+    padding: 0.5rem 0;
+}
+
+.payslip-breakdown .row:last-child {
+    border-bottom: 2px solid var(--primary-green);
+    font-weight: bold;
+}
+
+/* Modal customizations */
+.modal-content {
+    border-radius: 12px;
+    border: none;
+}
+
+.modal-header {
+    background-color: var(--dark-green);
+    color: white;
+    border-radius: 12px 12px 0 0;
+}
+
+.modal-header .btn-close {
+    filter: brightness(0) invert(1);
+}
+
+/* Badge styles */
+.badge-success {
+    background-color: var(--light-green);
+    color: var(--dark-green);
+}
+
+/* Loading spinner */
+.spinner-border.text-success {
+    color: var(--primary-green) !important;
+}
+
+/* Toast notifications */
+.toast-container {
+    z-index: 9999;
+}
+
+/* Tooltip customizations */
+.tooltip {
+    --bs-tooltip-bg: var(--dark-green);
+    --bs-tooltip-color: white;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: #a1a1a1;
+}
+
+/* Print-specific component styles */
+@media print {
+    .payslip-border {
+        border: none;
+        padding: 0;
+    }
+    
+    .payslip-amount {
+        font-size: 1.5rem;
+    }
+    
+    .no-print {
+        display: none !important;
+    }
+}
