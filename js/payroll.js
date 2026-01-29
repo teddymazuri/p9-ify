@@ -12,29 +12,29 @@ class PayrollManager {
     static calculatePayroll(basic, employeeId = null, monthDetails = null) {
         const settings = StateManager.getSettings();
         const rates = settings.rates;
-        
+
         // Convert to numbers
         basic = parseFloat(basic) || 0;
-        
+
         // Calculate statutory deductions
         const shif = Math.round(basic * (rates.shif / 100));
         const ahl = Math.round(basic * (rates.ahl / 100));
         const nssf = Math.min(basic * (rates.nssf / 100), 2160); // NSSF cap
-        
+
         // Calculate taxable income
         let taxable = basic - nssf - shif - ahl;
         taxable += (rates.benefits || 0) + (rates.quarters || 0);
-        
+
         // Calculate PAYE (Kenyan tax brackets 2024)
         let tax = 0;
         if (taxable > 24000) {
             tax = (taxable - 24000) * 0.30; // 30% for amounts above 24,000
         }
-        
+
         // Apply reliefs
         const paye = Math.max(0, Math.round(tax - rates.personalRelief - rates.insRelief));
         const net = basic - shif - ahl - nssf - paye;
-        
+
         const result = {
             basic,
             shif,
@@ -51,7 +51,7 @@ class PayrollManager {
             totalDeductions: shif + ahl + nssf + paye,
             calculatedAt: new Date().toISOString()
         };
-        
+
         // Save if employee and month details provided
         if (employeeId && monthDetails) {
             StateManager.savePayrollRecord(
@@ -61,7 +61,7 @@ class PayrollManager {
                 result
             );
         }
-        
+
         return result;
     }
 
@@ -72,12 +72,12 @@ class PayrollManager {
         const monthDetails = this.currentMonth;
         const employees = StateManager.getEmployees();
         const payrolls = StateManager.getPayrolls();
-        
+
         // Count payslips for current month
-        const payslipCount = Object.keys(payrolls).filter(key => 
+        const payslipCount = Object.keys(payrolls).filter(key =>
             key.startsWith(`${monthDetails.year}-${monthDetails.monthName}`)
         ).length;
-        
+
         container.innerHTML = `
             <div class="card p-4">
                 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center mb-4 gap-3">
@@ -89,7 +89,7 @@ class PayrollManager {
                         <div class="d-flex gap-2 align-items-center bg-light p-2 rounded border">
                             <label class="small fw-bold text-success mb-0 me-1">Payroll Month:</label>
                             <input type="month" id="payMonthCycle" class="form-control form-control-sm w-auto fw-bold" 
-                                   value="${monthDetails.inputValue}" onchange="PayrollManager.changeMonth(this.value)">
+                                value="${monthDetails.inputValue}" onchange="PayrollManager.changeMonth(this.value)">
                         </div>
                         <button class="btn btn-success btn-sm" onclick="PayrollManager.showAddPayslipModal()">
                             + Add Payslip
@@ -146,7 +146,7 @@ class PayrollManager {
                 monthDetails.year,
                 monthDetails.monthName
             ) || { basic: 0, nssf: 0, shif: 0, ahl: 0, paye: 0, net: 0 };
-            
+
             return `
                 <tr data-employee-id="${emp.id}">
                     <td>
@@ -155,11 +155,11 @@ class PayrollManager {
                     </td>
                     <td>
                         <input type="number" 
-                               class="form-control form-control-sm payroll-input" 
-                               style="width:110px" 
-                               value="${record.basic}"
-                               data-employee-id="${emp.id}"
-                               onchange="PayrollManager.updatePayroll(${emp.id}, this.value)">
+                                class="form-control form-control-sm payroll-input" 
+                                style="width:110px" 
+                                value="${record.basic}"
+                                data-employee-id="${emp.id}"
+                                onchange="PayrollManager.updatePayroll(${emp.id}, this.value)">
                     </td>
                     <td>${record.nssf.toLocaleString()}</td>
                     <td>${record.shif.toLocaleString()}</td>
@@ -172,11 +172,6 @@ class PayrollManager {
                                     onclick="PayrollManager.viewPayslip(${emp.id})"
                                     ${record.basic === 0 ? 'disabled' : ''}>
                                 <span class="me-1">📄</span> Payslip
-                            </button>
-                            <button class="btn btn-outline-primary" 
-                                    onclick="PayrollManager.generatePayslip(${emp.id})"
-                                    ${record.basic === 0 ? 'disabled' : ''}>
-                                <span class="me-1">🖨️</span> Print
                             </button>
                             <button class="btn btn-outline-warning" 
                                     onclick="PayrollManager.editPayslip('${emp.id}', '${monthDetails.year}', '${monthDetails.monthName}')"
@@ -197,7 +192,7 @@ class PayrollManager {
                 monthDetails.year,
                 monthDetails.monthName
             ) || { basic: 0, nssf: 0, shif: 0, ahl: 0, paye: 0, net: 0 };
-            
+
             acc.basic += record.basic;
             acc.nssf += record.nssf;
             acc.shif += record.shif;
@@ -206,7 +201,7 @@ class PayrollManager {
             acc.net += record.net;
             return acc;
         }, { basic: 0, nssf: 0, shif: 0, ahl: 0, paye: 0, net: 0 });
-        
+
         return `
             <tfoot class="table-light fw-bold">
                 <tr>
@@ -232,7 +227,7 @@ class PayrollManager {
         const container = document.getElementById('tab-content');
         const payrolls = StateManager.getPayrolls();
         const employees = StateManager.getEmployees();
-        
+
         const currentMonthPayslips = Object.keys(payrolls)
             .filter(key => key.startsWith(`${monthDetails.year}-${monthDetails.monthName}`))
             .map(key => {
@@ -241,9 +236,9 @@ class PayrollManager {
                 return { key, employee, data: payrolls[key] };
             })
             .filter(ps => ps.employee && ps.data.basic > 0);
-        
+
         if (currentMonthPayslips.length === 0) return;
-        
+
         const payslipListHTML = `
             <div class="card p-4 mt-4">
                 <h5 class="fw-bold mb-3">Generated Payslips - ${monthDetails.monthName} ${monthDetails.year}</h5>
@@ -286,15 +281,15 @@ class PayrollManager {
                 </div>
             </div>
         `;
-        
+
         container.insertAdjacentHTML('beforeend', payslipListHTML);
     }
 
     static changeMonth(monthValue) {
         const [year, month] = monthValue.split('-');
-        const months = ["January", "February", "March", "April", "May", "June", 
-                       "July", "August", "September", "October", "November", "December"];
-        
+        const months = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"];
+
         const payrollManager = new PayrollManager();
         payrollManager.currentMonth = {
             year,
@@ -302,7 +297,7 @@ class PayrollManager {
             monthName: months[parseInt(month) - 1],
             inputValue: monthValue
         };
-        
+
         payrollManager.renderPayrollTable();
     }
 
@@ -313,9 +308,9 @@ class PayrollManager {
             employeeId,
             payrollManager.currentMonth
         );
-        
+
         Utils.showToast('Payroll updated successfully', 'success');
-        
+
         // Update the row immediately
         const input = document.querySelector(`input[data-employee-id="${employeeId}"]`);
         if (input) {
@@ -325,7 +320,7 @@ class PayrollManager {
             row.cells[4].textContent = result.ahl.toLocaleString();
             row.cells[5].textContent = result.paye.toLocaleString();
             row.cells[6].textContent = result.net.toLocaleString();
-            
+
             // Enable/disable buttons based on basic pay
             const viewBtn = row.querySelector('button.btn-outline-success');
             const printBtn = row.querySelector('button.btn-outline-primary');
@@ -340,7 +335,7 @@ class PayrollManager {
                 editBtn.disabled = true;
             }
         }
-        
+
         // Update totals
         payrollManager.renderPayrollTable();
     }
@@ -351,7 +346,7 @@ class PayrollManager {
             Utils.showToast('Please add employees first', 'warning');
             return;
         }
-        
+
         const modalContent = `
             <div class="modal fade" id="addPayslipModal" tabindex="-1">
                 <div class="modal-dialog">
@@ -376,23 +371,23 @@ class PayrollManager {
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Payroll Month</label>
                                     <input type="month" id="payslipMonth" class="form-control" 
-                                           value="${new Date().toISOString().slice(0, 7)}" required>
+                                        value="${new Date().toISOString().slice(0, 7)}" required>
                                 </div>
                                 <div class="mb-3">
                                     <label class="form-label small fw-bold">Basic Pay (KES)</label>
                                     <input type="number" id="payslipBasic" class="form-control" 
-                                           placeholder="Enter basic salary" required>
+                                        placeholder="Enter basic salary" required>
                                 </div>
                                 <div class="row mb-3">
                                     <div class="col-6">
                                         <label class="form-label small fw-bold">Benefits (KES)</label>
                                         <input type="number" id="payslipBenefits" class="form-control" 
-                                               value="${StateManager.getSettings().rates.benefits}">
+                                            value="${StateManager.getSettings().rates.benefits}">
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label small fw-bold">Quarters (KES)</label>
                                         <input type="number" id="payslipQuarters" class="form-control" 
-                                               value="${StateManager.getSettings().rates.quarters}">
+                                            value="${StateManager.getSettings().rates.quarters}">
                                     </div>
                                 </div>
                             </form>
@@ -419,46 +414,46 @@ class PayrollManager {
         const basic = parseFloat(document.getElementById('payslipBasic').value) || 0;
         const benefits = parseFloat(document.getElementById('payslipBenefits').value) || 0;
         const quarters = parseFloat(document.getElementById('payslipQuarters').value) || 0;
-        
+
         if (!employeeId || !monthValue || basic <= 0) {
             Utils.showToast('Please fill all required fields with valid values', 'error');
             return;
         }
-        
+
         const [year, month] = monthValue.split('-');
-        const months = ["January", "February", "March", "April", "May", "June", 
-                       "July", "August", "September", "October", "November", "December"];
+        const months = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"];
         const monthName = months[parseInt(month) - 1];
-        
+
         // Update settings with custom benefits and quarters for this calculation
         const settings = StateManager.getSettings();
         const originalBenefits = settings.rates.benefits;
         const originalQuarters = settings.rates.quarters;
-        
+
         settings.rates.benefits = benefits;
         settings.rates.quarters = quarters;
         StateManager.saveSettings(settings);
-        
+
         // Calculate payroll
         const monthDetails = { year, monthName, monthIdx: parseInt(month) - 1, inputValue: monthValue };
         const result = PayrollManager.calculatePayroll(basic, employeeId, monthDetails);
-        
+
         // Restore original settings
         settings.rates.benefits = originalBenefits;
         settings.rates.quarters = originalQuarters;
         StateManager.saveSettings(settings);
-        
+
         Utils.showToast('Payslip created successfully', 'success');
-        
+
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('addPayslipModal')).hide();
-        
+
         // If viewing same month, refresh table
         const currentMonth = new PayrollManager().currentMonth;
         if (year === currentMonth.year && monthName === currentMonth.monthName) {
             new PayrollManager().renderPayrollTable();
         }
-        
+
         // Show the payslip
         setTimeout(() => {
             PayrollManager.viewPayslip(employeeId, monthDetails);
@@ -468,7 +463,7 @@ class PayrollManager {
     static viewPayslip(employeeId, customMonthDetails = null) {
         const payrollManager = customMonthDetails ? { currentMonth: customMonthDetails } : new PayrollManager();
         const employee = StateManager.getEmployees().find(e => e.id == employeeId);
-        
+
         if (!employee) {
             Utils.showToast('Employee not found', 'error');
             return;
@@ -489,12 +484,133 @@ class PayrollManager {
         this.generatePayslipModal(employee, record, payrollManager.currentMonth);
     }
 
+    // EDIT Payslip 
+    static editPayslip(employeeId, year, monthName) {
+        const employee = StateManager.getEmployees().find(e => e.id == employeeId);
+        if (!employee) {
+            Utils.showToast('Employee not found', 'error');
+            return;
+        }
+
+        const record = StateManager.getPayrollRecord(employeeId, year, monthName);
+        if (!record) {
+            Utils.showToast('No payslip found to edit', 'error');
+            return;
+        }
+
+        const modalContent = `
+        <div class="modal fade" id="editPayslipModal" tabindex="-1">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title">Edit Payslip</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form id="editPayslipForm">
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Employee</label>
+                                <input type="text" class="form-control" value="${employee.name} (${employee.employeeId || employee.pin})" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Payroll Month</label>
+                                <input type="text" class="form-control" value="${monthName} ${year}" readonly>
+                            </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">Basic Pay (KES)</label>
+                                <input type="number" id="editPayslipBasic" class="form-control" 
+                                        value="${record.basic}" required>
+                            </div>
+                            <div class="row mb-3">
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Benefits (KES)</label>
+                                    <input type="number" id="editPayslipBenefits" class="form-control" 
+                                            value="${record.benefits || 0}">
+                                </div>
+                                <div class="col-6">
+                                    <label class="form-label small fw-bold">Quarters (KES)</label>
+                                    <input type="number" id="editPayslipQuarters" class="form-control" 
+                                            value="${record.quarters || 0}">
+                                </div>
+                            </div>
+                            <div class="alert alert-info small">
+                                <i class="bi bi-info-circle me-1"></i>
+                                Statutory deductions (NSSF, SHIF, Housing Levy, PAYE) will be recalculated automatically.
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancel</button>
+                        <button type="button" class="btn btn-primary" onclick="PayrollManager.savePayslipEdit('${employeeId}', '${year}', '${monthName}')">
+                            Save Changes
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    `;
+
+        document.getElementById('modal-container').innerHTML = modalContent;
+        const modal = new bootstrap.Modal(document.getElementById('editPayslipModal'));
+        modal.show();
+    }
+
+    static savePayslipEdit(employeeId, year, monthName) {
+        const basic = parseFloat(document.getElementById('editPayslipBasic').value) || 0;
+        const benefits = parseFloat(document.getElementById('editPayslipBenefits').value) || 0;
+        const quarters = parseFloat(document.getElementById('editPayslipQuarters').value) || 0;
+
+        if (basic <= 0) {
+            Utils.showToast('Basic pay must be greater than 0', 'error');
+            return;
+        }
+
+        const monthDetails = {
+            year: year,
+            monthName: monthName,
+            monthIdx: ["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"].indexOf(monthName),
+            inputValue: `${year}-${String(["January", "February", "March", "April", "May", "June",
+                "July", "August", "September", "October", "November", "December"].indexOf(monthName) + 1).padStart(2, '0')}`
+        };
+
+        // Update settings with custom benefits and quarters for this calculation
+        const settings = StateManager.getSettings();
+        const originalBenefits = settings.rates.benefits;
+        const originalQuarters = settings.rates.quarters;
+
+        settings.rates.benefits = benefits;
+        settings.rates.quarters = quarters;
+        StateManager.saveSettings(settings);
+
+        // Calculate payroll with updated values
+        const result = PayrollManager.calculatePayroll(basic, employeeId, monthDetails);
+
+        // Restore original settings
+        settings.rates.benefits = originalBenefits;
+        settings.rates.quarters = originalQuarters;
+        StateManager.saveSettings(settings);
+
+        Utils.showToast('Payslip updated successfully', 'success');
+
+        // Close modal
+        bootstrap.Modal.getInstance(document.getElementById('editPayslipModal')).hide();
+
+        // Refresh the payroll table if viewing the same month
+        const currentMonth = new PayrollManager().currentMonth;
+        if (year === currentMonth.year && monthName === currentMonth.monthName) {
+            new PayrollManager().renderPayrollTable();
+        }
+    }
+
+
+
     static generatePayslipModal(employee, payrollData, monthDetails) {
         // Calculate totals
         const grossPay = payrollData.basic + (payrollData.benefits || 0) + (payrollData.quarters || 0);
-        const totalDeductions = (payrollData.nssf || 0) + (payrollData.shif || 0) + 
-                               (payrollData.ahl || 0) + (payrollData.paye || 0);
-        
+        const totalDeductions = (payrollData.nssf || 0) + (payrollData.shif || 0) +
+            (payrollData.ahl || 0) + (payrollData.paye || 0);
+
         const modalContent = `
             <div class="modal fade" id="payslipModal" tabindex="-1" aria-labelledby="payslipModalLabel" aria-hidden="true">
                 <div class="modal-dialog modal-lg">
@@ -519,7 +635,7 @@ class PayrollManager {
                                                 <p class="mb-1"><strong>Name:</strong> ${employee.name}</p>
                                                 <p class="mb-1"><strong>Employee ID:</strong> ${employee.employeeId || employee.pin || 'N/A'}</p>
                                                 <p class="mb-1"><strong>KRA PIN:</strong> ${employee.pin || 'N/A'}</p>
-                                                <p class="mb-1"><strong>ID Number:</strong> ${employee.idNumber || 'N/A'}</p>
+                                                <p class="mb-1"><strong>ID Number:</strong> ${employee.nationalId || 'N/A'}</p>
                                             </div>
                                         </div>
                                     </div>
@@ -645,7 +761,7 @@ class PayrollManager {
 
         // Add modal to DOM
         document.getElementById('modal-container').innerHTML = modalContent;
-        
+
         // Show modal
         const modal = new bootstrap.Modal(document.getElementById('payslipModal'));
         modal.show();
@@ -654,10 +770,10 @@ class PayrollManager {
     static printPayslip() {
         // Store original body content
         const originalBody = document.body.innerHTML;
-        
+
         // Get payslip content
         const payslipContent = document.getElementById('payslip-content').outerHTML;
-        
+
         // Create print window
         const printWindow = window.open('', '_blank');
         printWindow.document.write(`
@@ -694,7 +810,7 @@ class PayrollManager {
             </html>
         `);
         printWindow.document.close();
-        
+
         // Close modal
         bootstrap.Modal.getInstance(document.getElementById('payslipModal')).hide();
     }
@@ -702,7 +818,7 @@ class PayrollManager {
     static downloadPayslip(employeeId, year, monthName) {
         const employee = StateManager.getEmployees().find(e => e.id == employeeId);
         const record = StateManager.getPayrollRecord(employeeId, year, monthName);
-        
+
         if (!employee || !record) {
             Utils.showToast('Payslip data not found', 'error');
             return;
@@ -710,7 +826,7 @@ class PayrollManager {
 
         // Get payslip content
         const payslipContent = document.getElementById('payslip-content').outerHTML;
-        
+
         // Create a temporary element for html2pdf
         const tempDiv = document.createElement('div');
         tempDiv.innerHTML = `
@@ -733,7 +849,7 @@ class PayrollManager {
             </body>
             </html>
         `;
-        
+
         // Use html2pdf if available
         if (typeof html2pdf !== 'undefined') {
             html2pdf()
@@ -751,7 +867,7 @@ class PayrollManager {
             alert('PDF library not loaded. Opening print view instead.');
             this.printPayslip();
         }
-        
+
         Utils.showToast('Payslip download started', 'success');
     }
 
@@ -759,7 +875,7 @@ class PayrollManager {
     static generatePayslip(employeeId) {
         const payrollManager = new PayrollManager();
         const employee = StateManager.getEmployees().find(e => e.id == employeeId);
-        
+
         if (!employee) return;
 
         const record = StateManager.getPayrollRecord(
@@ -781,9 +897,9 @@ class PayrollManager {
     static processAllPayslips() {
         const payrollManager = new PayrollManager();
         const employees = StateManager.getEmployees();
-        
+
         bootstrap.Modal.getInstance(document.getElementById('generateAllModal')).hide();
-        
+
         // Filter employees with payroll data
         const employeesWithData = employees.filter(emp => {
             const record = StateManager.getPayrollRecord(
@@ -793,14 +909,14 @@ class PayrollManager {
             );
             return record && record.basic > 0;
         });
-        
+
         if (employeesWithData.length === 0) {
             Utils.showToast('No employees with payroll data', 'warning');
             return;
         }
-        
+
         Utils.showToast(`Generating ${employeesWithData.length} payslips...`, 'info');
-        
+
         // Generate payslips one by one with delay
         employeesWithData.forEach((emp, index) => {
             setTimeout(() => {
@@ -809,10 +925,10 @@ class PayrollManager {
                     payrollManager.currentMonth.year,
                     payrollManager.currentMonth.monthName
                 );
-                
+
                 // Show modal for each payslip
                 this.generatePayslipModal(emp, record, payrollManager.currentMonth);
-                
+
                 if (index === employeesWithData.length - 1) {
                     setTimeout(() => {
                         Utils.showToast(`Generated ${employeesWithData.length} payslips`, 'success');
@@ -824,13 +940,13 @@ class PayrollManager {
 
     static deletePayslip(payrollKey) {
         if (!confirm('Delete this payslip? This action cannot be undone.')) return;
-        
+
         const payrolls = StateManager.getPayrolls();
         delete payrolls[payrollKey];
         StateManager.savePayrolls(payrolls);
-        
+
         Utils.showToast('Payslip deleted', 'success');
-        
+
         // Refresh the table
         new PayrollManager().renderPayrollTable();
     }

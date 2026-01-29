@@ -44,7 +44,21 @@ class StateManager {
     // Settings Management
     static getSettings() {
         const saved = JSON.parse(localStorage.getItem(this.STORAGE_KEYS.SETTINGS));
-        return { ...this.DEFAULT_SETTINGS, ...saved };
+
+        //return { ...this.DEFAULT_SETTINGS, ...saved }; ** Previous Code that I highlighted **
+
+        // If no saved settings, return defaults
+        if (!saved) return { ...this.DEFAULT_SETTINGS };
+
+        // Deep merge to ensure rates object is properly merged
+        const result = { ...this.DEFAULT_SETTINGS, ...saved };
+
+        // Ensure rates object is fully merged
+        if (saved.rates) {
+            result.rates = { ...this.DEFAULT_SETTINGS.rates, ...saved.rates };
+        }
+
+        return result;
     }
 
     static saveSettings(settings) {
@@ -96,8 +110,8 @@ class StateManager {
     // Helper to get current month details
     static getCurrentMonthDetails() {
         const now = new Date();
-        const months = ["January", "February", "March", "April", "May", "June", 
-                       "July", "August", "September", "October", "November", "December"];
+        const months = ["January", "February", "March", "April", "May", "June",
+            "July", "August", "September", "October", "November", "December"];
         return {
             year: now.getFullYear(),
             monthIdx: now.getMonth(),

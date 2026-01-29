@@ -45,8 +45,8 @@ class EmployeeManager {
         }
 
         // Validate National ID format (Kenyan: 8 digits)
-        if (nationalId && !/^\d{8}$/.test(nationalId)) {
-            alert('National ID must be 8 digits');
+        if (nationalId && !/^\d{7,8}$/.test(nationalId)) {
+            alert('National ID must be 7 or 8 digits');
             return false;
         }
 
@@ -75,8 +75,8 @@ class EmployeeManager {
         }
 
         // Validate National ID if provided
-        if (updates.nationalId && !/^\d{8}$/.test(updates.nationalId)) {
-            alert('National ID must be 8 digits');
+        if (updates.nationalId && !/^\d{7,8}$/.test(updates.nationalId)) {
+            alert('National ID must be 7 or 8 digits');
             return false;
         }
 
@@ -219,8 +219,8 @@ class EmployeeManager {
                                 </div>
                                 <div class="col-12">
                                     <label class="form-label small fw-bold">National ID (Optional)</label>
-                                    <input type="text" id="editEmpNationalId" class="form-control" value="${employee.nationalId || ''}" placeholder="8 digits">
-                                    <div class="form-text">Format: 8 digits (e.g., 12345678)</div>
+                                    <input type="text" id="editEmpNationalId" class="form-control" value="${employee.nationalId || ''}" placeholder="7 or 8 digits">
+                                    <div class="form-text">Format: 7 or 8 digits (e.g.,1234567 or 12345678)</div>
                                 </div>
                             </form>
                         </div>
@@ -277,7 +277,7 @@ class EmployeeManager {
         // Sort by date (newest first)
         history.sort((a, b) => {
             const months = ["January", "February", "March", "April", "May", "June", 
-                          "July", "August", "September", "October", "November", "December"];
+                            "July", "August", "September", "October", "November", "December"];
             const aMonth = months.indexOf(a.month.split(' ')[0]);
             const aYear = parseInt(a.month.split(' ')[1]);
             const bMonth = months.indexOf(b.month.split(' ')[0]);
@@ -370,7 +370,7 @@ class EmployeeManager {
                     <div class="col-md-6 col-lg-2">
                         <label class="form-label small fw-bold">National ID</label>
                         <input type="text" id="empNationalId" class="form-control" placeholder="12345678" maxlength="8">
-                        <div class="form-text">8 digits, optional</div>
+                        <div class="form-text"> 7 or 8 digits, optional</div>
                     </div>
                     <div class="col-md-12 col-lg-3 d-flex align-items-end">
                         <button type="submit" class="btn btn-primary w-100">
