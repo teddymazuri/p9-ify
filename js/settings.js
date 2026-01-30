@@ -148,7 +148,7 @@ class SettingsManager {
                 </div>
                 
                 <div class="mt-4 pt-3 border-top">
-                    <h6 class="fw-bold mb-3">Tax Brackets (Kenya 2024)</h6>
+                    <h6 class="fw-bold mb-3">Tax Brackets (Kenya 2026)</h6>
                     <div class="table-responsive">
                         <table class="table table-sm table-bordered">
                             <thead class="table-light">
