@@ -59,14 +59,17 @@ class SettingsManager {
                     <div class="card p-4 mb-4">
                         <h4 class="fw-bold mb-4">Data Management</h4>
                         <div class="d-grid gap-2">
-                            <button class="btn btn-outline-primary" onclick="SettingsManager.exportAllData()">
-                                📥 Export All Data
+                            <button class="btn btn-outline-primary" onclick="EnhancedDataManager.exportWithOptions()">
+                                📤 Smart Export
                             </button>
-                            <button class="btn btn-outline-secondary" onclick="SettingsManager.importData()">
-                                📤 Import Data
+                            <button class="btn btn-outline-info" onclick="BackupManager.createAutoBackup()">
+                                💾 Create Backup
                             </button>
-                            <button class="btn btn-outline-warning" onclick="SettingsManager.clearPayrollData()">
-                                🗑️ Clear Payroll Data
+                            <button class="btn btn-outline-warning" onclick="DataIntegrityManager.repairData()">
+                                🔧 Repair Data
+                            </button>
+                            <button class="btn btn-outline-secondary" onclick="SettingsManager.showBackupManager()">
+                                ⏱️ Manage Backups
                             </button>
                             <button class="btn btn-outline-danger" onclick="StateManager.clearAllData()">
                                 ⚠️ Reset Everything
@@ -168,15 +171,21 @@ class SettingsManager {
     }
 
     static markAsChanged() {
-        document.querySelector('button[onclick="SettingsManager.confirmSettingsUpdate()"]').classList.remove('btn-success');
-        document.querySelector('button[onclick="SettingsManager.confirmSettingsUpdate()"]').classList.add('btn-warning');
-        document.querySelector('button[onclick="SettingsManager.confirmSettingsUpdate()"]').innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Save Changes';
+        const saveBtn = document.querySelector('button[onclick="SettingsManager.confirmSettingsUpdate()"]');
+        if (saveBtn) {
+            saveBtn.classList.remove('btn-success');
+            saveBtn.classList.add('btn-warning');
+            saveBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Save Changes';
+        }
     }
 
     static markRatesAsChanged() {
-        document.querySelector('button[onclick="SettingsManager.confirmRatesUpdate()"]').classList.remove('btn-success');
-        document.querySelector('button[onclick="SettingsManager.confirmRatesUpdate()"]').classList.add('btn-warning');
-        document.querySelector('button[onclick="SettingsManager.confirmRatesUpdate()"]').innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Save Rates';
+        const saveBtn = document.querySelector('button[onclick="SettingsManager.confirmRatesUpdate()"]');
+        if (saveBtn) {
+            saveBtn.classList.remove('btn-success');
+            saveBtn.classList.add('btn-warning');
+            saveBtn.innerHTML = '<i class="bi bi-exclamation-triangle me-1"></i> Save Rates';
+        }
     }
 
     static confirmSettingsUpdate() {
@@ -195,9 +204,11 @@ class SettingsManager {
 
         // Reset button state
         const saveBtn = document.querySelector('button[onclick="SettingsManager.confirmSettingsUpdate()"]');
-        saveBtn.classList.remove('btn-warning');
-        saveBtn.classList.add('btn-success');
-        saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Save Changes';
+        if (saveBtn) {
+            saveBtn.classList.remove('btn-warning');
+            saveBtn.classList.add('btn-success');
+            saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Save Changes';
+        }
 
         // Update UI elements that display company name
         document.querySelectorAll('.text-company-name, #company-name').forEach(el => {
@@ -210,53 +221,32 @@ class SettingsManager {
     static confirmRatesUpdate() {
         const settings = StateManager.getSettings();
 
-        // Get input elements
-        const ahlInput = document.getElementById('rateAHL');
-
-        // Check if input is empty string
-        if (ahlInput.value.trim() === '') {
-            // If empty, set to 0
-            settings.rates.ahl = 0;
-        } else {
-            // If has value, parse it
-            const parsed = parseFloat(ahlInput.value);
-            // Use parsed value if valid number, otherwise 0
-            settings.rates.ahl = isNaN(parsed) ? 0 : parsed;
-        }
-
-        // Apply same logic to other rates
-        const shifInput = document.getElementById('rateSHIF');
-        if (shifInput.value.trim() === '') {
-            settings.rates.shif = 0;
-        } else {
-            const parsed = parseFloat(shifInput.value);
-            settings.rates.shif = isNaN(parsed) ? 0 : parsed;
-        }
-
-        const nssfInput = document.getElementById('rateNSSF');
-        if (nssfInput.value.trim() === '') {
-            settings.rates.nssf = 0;
-        } else {
-            const parsed = parseFloat(nssfInput.value);
-            settings.rates.nssf = isNaN(parsed) ? 0 : parsed;
-        }
+        // Helper function to parse input safely
+        const parseInput = (inputId, defaultValue = 0) => {
+            const input = document.getElementById(inputId);
+            if (!input || input.value.trim() === '') return defaultValue;
+            const parsed = parseFloat(input.value);
+            return isNaN(parsed) ? defaultValue : parsed;
+        };
 
         // Update all rates
-        //settings.rates.shif = parseFloat(document.getElementById('rateSHIF').value) || 2.75;
-        //settings.rates.ahl = parseFloat(document.getElementById('rateAHL').value) || 1.5;
-        //settings.rates.nssf = parseFloat(document.getElementById('rateNSSF').value) || 6;
-        settings.rates.personalRelief = parseFloat(document.getElementById('defaultRelief').value) || 2400;
-        settings.rates.insRelief = parseFloat(document.getElementById('defaultInsRelief').value) || 0;
-        settings.rates.benefits = parseFloat(document.getElementById('defaultBenefits').value) || 0;
-        settings.rates.quarters = parseFloat(document.getElementById('defaultQuarters').value) || 0;
+        settings.rates.shif = parseInput('rateSHIF', 2.75);
+        settings.rates.ahl = parseInput('rateAHL', 1.5);
+        settings.rates.nssf = parseInput('rateNSSF', 6);
+        settings.rates.personalRelief = parseInput('defaultRelief', 2400);
+        settings.rates.insRelief = parseInput('defaultInsRelief', 0);
+        settings.rates.benefits = parseInput('defaultBenefits', 0);
+        settings.rates.quarters = parseInput('defaultQuarters', 0);
 
         StateManager.saveSettings(settings);
 
         // Reset button state
         const saveBtn = document.querySelector('button[onclick="SettingsManager.confirmRatesUpdate()"]');
-        saveBtn.classList.remove('btn-warning');
-        saveBtn.classList.add('btn-success');
-        saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Save Rates';
+        if (saveBtn) {
+            saveBtn.classList.remove('btn-warning');
+            saveBtn.classList.add('btn-success');
+            saveBtn.innerHTML = '<i class="bi bi-check-lg me-1"></i> Save Rates';
+        }
 
         Utils.showToast('Statutory rates updated successfully', 'success');
     }
@@ -302,38 +292,75 @@ class SettingsManager {
         Utils.showToast('Logo removed successfully', 'success');
     }
 
-    static exportAllData() {
-        Utils.exportAllData();
-    }
+    static showBackupManager() {
+        const backups = BackupManager.getBackups();
 
-    static importData() {
-        const input = document.createElement('input');
-        input.type = 'file';
-        input.accept = '.json';
-
-        input.onchange = async (e) => {
-            const file = e.target.files[0];
-            if (!file) return;
-
-            try {
-                await Utils.importData(file);
-                Utils.showToast('Data imported successfully! Page will reload.', 'success');
-                setTimeout(() => location.reload(), 1500);
-            } catch (error) {
-                Utils.showToast('Error importing data: ' + error.message, 'error');
+        const modalContent = `
+            <div class="modal fade" id="backupManagerModal" tabindex="-1">
+                <div class="modal-dialog modal-lg">
+                    <div class="modal-content">
+                        <div class="modal-header">
+                            <h5 class="modal-title">Backup Manager</h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                        </div>
+                        <div class="modal-body">
+                            <div class="mb-3">
+                                <button class="btn btn-primary btn-sm" onclick="BackupManager.createAutoBackup(); bootstrap.Modal.getInstance(document.getElementById('backupManagerModal')).hide();">
+                                    + Create New Backup
+                                </button>
+                            </div>
+                            
+                            ${backups.length === 0 ?
+                '<div class="alert alert-info">No backups found. Create your first backup to get started.</div>' :
+                `<div class="table-responsive">
+                                <table class="table table-sm">
+                                    <thead>
+                                        <tr>
+                                            <th>Date & Time</th>
+                                            <th>Size</th>
+                                            <th>Employees</th>
+                                            <th>Payrolls</th>
+                                            <th>Actions</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        ${backups.map(backup => `
+                                            <tr>
+                                                <td>${new Date(backup.timestamp).toLocaleString()}</td>
+                                                <td>${Math.round(backup.size / 1024)} KB</td>
+                                                <td>${backup.data.employees?.length || 0}</td>
+                                                <td>${Object.keys(backup.data.payrolls || {}).length}</td>
+                                                <td>
+                                                    <button class="btn btn-sm btn-success" onclick="BackupManager.restoreBackup('${backup.id}')">
+                                                        Restore
+                                                    </button>
+                                                    <button class="btn btn-sm btn-outline-danger" 
+                                                            onclick="if(confirm('Delete this backup?')) { 
+                                                                const backups = BackupManager.getBackups();
+                                                                const updated = backups.filter(b => b.id !== '${backup.id}');
+                                                                localStorage.setItem('payroll_backups', JSON.stringify(updated));
+                                                                location.reload();
+                                                            }">
+                                                        Delete
+                                                    </button>
+                                                </td>
+                                            </tr>
+                                        `).join('')}
+                                    </tbody>
+                                </table>
+                            </div>`
             }
-        };
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
 
-        input.click();
-    }
-
-    static clearPayrollData() {
-        if (!confirm('Clear all payroll data? This will remove all monthly payroll entries but keep employee list and settings.')) {
-            return;
-        }
-
-        localStorage.removeItem('gen_payrolls');
-        Utils.showToast('Payroll data cleared successfully', 'success');
-        setTimeout(() => location.reload(), 1000);
+        document.getElementById('modal-container').innerHTML = modalContent;
+        const modal = new bootstrap.Modal(document.getElementById('backupManagerModal'));
+        modal.show();
     }
 }

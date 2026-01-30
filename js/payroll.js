@@ -612,152 +612,154 @@ class PayrollManager {
             (payrollData.ahl || 0) + (payrollData.paye || 0);
 
         const modalContent = `
-            <div class="modal fade" id="payslipModal" tabindex="-1" aria-labelledby="payslipModalLabel" aria-hidden="true">
-                <div class="modal-dialog modal-lg">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title" id="payslipModalLabel">Payslip - ${monthDetails.monthName} ${monthDetails.year}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-                        </div>
-                        <div class="modal-body">
-                            <!-- Payslip Content -->
-                            <div class="payslip-container" id="payslip-content">
-                                <div class="text-center mb-4">
-                                    <h4 class="fw-bold">PAYSLIP</h4>
-                                    <p class="text-muted mb-1">For the month of ${monthDetails.monthName} ${monthDetails.year}</p>
-                                </div>
-                                
-                                <div class="row mb-4">
-                                    <div class="col-md-6">
-                                        <div class="card border-0 bg-light">
-                                            <div class="card-body">
-                                                <h6 class="card-title fw-bold">EMPLOYEE DETAILS</h6>
-                                                <p class="mb-1"><strong>Name:</strong> ${employee.name}</p>
-                                                <p class="mb-1"><strong>Employee ID:</strong> ${employee.employeeId || employee.pin || 'N/A'}</p>
-                                                <p class="mb-1"><strong>KRA PIN:</strong> ${employee.pin || 'N/A'}</p>
-                                                <p class="mb-1"><strong>ID Number:</strong> ${employee.nationalId || 'N/A'}</p>
-                                            </div>
-                                        </div>
-                                    </div>
-                                    <div class="col-md-6">
-                                        <div class="card border-0 bg-light">
-                                            <div class="card-body">
-                                                <h6 class="card-title fw-bold">PAYMENT SUMMARY</h6>
-                                                <p class="mb-1"><strong>Payment Date:</strong> ${new Date().toLocaleDateString()}</p>
-                                                <p class="mb-1"><strong>Pay Period:</strong> ${monthDetails.monthName} ${monthDetails.year}</p>
-                                                <p class="mb-1"><strong>Net Pay:</strong> KES ${payrollData.net?.toLocaleString() || '0'}</p>
-                                            </div>
+        <div class="modal fade" id="payslipModal" tabindex="-1" aria-labelledby="payslipModalLabel" aria-hidden="true">
+            <div class="modal-dialog modal-lg">
+                <div class="modal-content">
+                    <div class="modal-header">
+                        <h5 class="modal-title" id="payslipModalLabel">Payslip - ${monthDetails.monthName} ${monthDetails.year}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <!-- Payslip Content -->
+                        <div class="payslip-container" id="payslip-content">
+                            <div class="text-center mb-4">
+                                <h4 class="fw-bold">PAYSLIP</h4>
+                                <p class="text-muted mb-1">For the month of ${monthDetails.monthName} ${monthDetails.year}</p>
+                            </div>
+                            
+                            <div class="row mb-4">
+                                <div class="col-md-6">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title fw-bold">EMPLOYEE DETAILS</h6>
+                                            <p class="mb-1"><strong>Name:</strong> ${employee.name}</p>
+                                            <p class="mb-1"><strong>Employee ID:</strong> ${employee.employeeId || employee.pin || 'N/A'}</p>
+                                            <p class="mb-1"><strong>KRA PIN:</strong> ${employee.pin || 'N/A'}</p>
+                                            <p class="mb-1"><strong>ID Number:</strong> ${employee.nationalId || 'N/A'}</p>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Earnings -->
-                                <div class="table-responsive mb-4">
-                                    <table class="table table-bordered">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th colspan="2" class="bg-success text-white">EARNINGS</th>
-                                            </tr>
-                                            <tr>
-                                                <th width="80%">Description</th>
-                                                <th width="20%" class="text-end">Amount (KES)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>Basic Salary</td>
-                                                <td class="text-end">${payrollData.basic.toLocaleString()}</td>
-                                            </tr>
-                                            ${payrollData.benefits ? `
-                                            <tr>
-                                                <td>Benefits</td>
-                                                <td class="text-end">${payrollData.benefits.toLocaleString()}</td>
-                                            </tr>
-                                            ` : ''}
-                                            ${payrollData.quarters ? `
-                                            <tr>
-                                                <td>Quarters Allowance</td>
-                                                <td class="text-end">${payrollData.quarters.toLocaleString()}</td>
-                                            </tr>
-                                            ` : ''}
-                                            <tr class="table-success">
-                                                <td><strong>TOTAL GROSS PAY</strong></td>
-                                                <td class="text-end"><strong>${grossPay.toLocaleString()}</strong></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
+                                <div class="col-md-6">
+                                    <div class="card border-0 bg-light">
+                                        <div class="card-body">
+                                            <h6 class="card-title fw-bold">PAYMENT SUMMARY</h6>
+                                            <p class="mb-1"><strong>Payment Date:</strong> ${new Date().toLocaleDateString()}</p>
+                                            <p class="mb-1"><strong>Pay Period:</strong> ${monthDetails.monthName} ${monthDetails.year}</p>
+                                            <p class="mb-1"><strong>Net Pay:</strong> KES ${payrollData.net?.toLocaleString() || '0'}</p>
+                                        </div>
+                                    </div>
                                 </div>
-                                
-                                <!-- Deductions -->
-                                <div class="table-responsive mb-4">
-                                    <table class="table table-bordered">
-                                        <thead class="table-light">
-                                            <tr>
-                                                <th colspan="2" class="bg-danger text-white">DEDUCTIONS</th>
-                                            </tr>
-                                            <tr>
-                                                <th width="80%">Description</th>
-                                                <th width="20%" class="text-end">Amount (KES)</th>
-                                            </tr>
-                                        </thead>
-                                        <tbody>
-                                            <tr>
-                                                <td>NSSF Contribution</td>
-                                                <td class="text-end">${(payrollData.nssf || 0).toLocaleString()}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>SHIF Contribution</td>
-                                                <td class="text-end">${(payrollData.shif || 0).toLocaleString()}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>Affordable Housing Levy</td>
-                                                <td class="text-end">${(payrollData.ahl || 0).toLocaleString()}</td>
-                                            </tr>
-                                            <tr>
-                                                <td>PAYE Tax</td>
-                                                <td class="text-end">${(payrollData.paye || 0).toLocaleString()}</td>
-                                            </tr>
-                                            <tr class="table-danger">
-                                                <td><strong>TOTAL DEDUCTIONS</strong></td>
-                                                <td class="text-end"><strong>${totalDeductions.toLocaleString()}</strong></td>
-                                            </tr>
-                                        </tbody>
-                                    </table>
-                                </div>
-                                
-                                <!-- Net Pay Summary -->
-                                <div class="row">
-                                    <div class="col-md-8 offset-md-4">
-                                        <div class="card border-success">
-                                            <div class="card-body text-center">
-                                                <h5 class="card-title text-success">NET PAY</h5>
-                                                <h2 class="fw-bold text-success">KES ${payrollData.net?.toLocaleString() || '0'}</h2>
+                            </div>
+                            
+                            <!-- Earnings -->
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th colspan="2" class="bg-success text-white">EARNINGS</th>
+                                        </tr>
+                                        <tr>
+                                            <th width="80%">Description</th>
+                                            <th width="20%" class="text-end">Amount (KES)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>Basic Salary</td>
+                                            <td class="text-end">${payrollData.basic.toLocaleString()}</td>
+                                        </tr>
+                                        ${payrollData.benefits ? `
+                                        <tr>
+                                            <td>Benefits</td>
+                                            <td class="text-end">${payrollData.benefits.toLocaleString()}</td>
+                                        </tr>
+                                        ` : ''}
+                                        ${payrollData.quarters ? `
+                                        <tr>
+                                            <td>Quarters Allowance</td>
+                                            <td class="text-end">${payrollData.quarters.toLocaleString()}</td>
+                                        </tr>
+                                        ` : ''}
+                                        <tr class="table-success">
+                                            <td><strong>TOTAL GROSS PAY</strong></td>
+                                            <td class="text-end"><strong>${grossPay.toLocaleString()}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Deductions -->
+                            <div class="table-responsive mb-4">
+                                <table class="table table-bordered">
+                                    <thead class="table-light">
+                                        <tr>
+                                            <th colspan="2" class="bg-danger text-white">DEDUCTIONS</th>
+                                        </tr>
+                                        <tr>
+                                            <th width="80%">Description</th>
+                                            <th width="20%" class="text-end">Amount (KES)</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        <tr>
+                                            <td>NSSF Contribution</td>
+                                            <td class="text-end">${(payrollData.nssf || 0).toLocaleString()}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>SHIF Contribution</td>
+                                            <td class="text-end">${(payrollData.shif || 0).toLocaleString()}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>Affordable Housing Levy</td>
+                                            <td class="text-end">${(payrollData.ahl || 0).toLocaleString()}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>PAYE Tax</td>
+                                            <td class="text-end">${(payrollData.paye || 0).toLocaleString()}</td>
+                                        </tr>
+                                        <tr class="table-danger">
+                                            <td><strong>TOTAL DEDUCTIONS</strong></td>
+                                            <td class="text-end"><strong>${totalDeductions.toLocaleString()}</strong></td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                            
+                            <!-- Net Pay Summary - Centered Card -->
+                            <div class="container-fluid px-0">
+                                <div class="row justify-content-center">
+                                    <div class="col-md-8">
+                                        <div class="card border-success shadow-sm">
+                                            <div class="card-body text-center py-4">
+                                                <h5 class="card-title text-success mb-3">NET PAY</h5>
+                                                <h2 class="fw-bold text-success mb-3">KES ${payrollData.net?.toLocaleString() || '0'}</h2>
                                                 <p class="text-muted mb-0">Amount payable to employee</p>
                                             </div>
                                         </div>
                                     </div>
                                 </div>
-                                
-                                <!-- Footer -->
-                                <div class="mt-4 pt-4 border-top text-center text-muted small">
-                                    <p class="mb-1">This is a computer-generated payslip. No signature required.</p>
-                                    <p class="mb-0">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
-                                </div>
+                            </div>
+                            
+                            <!-- Footer -->
+                            <div class="mt-4 pt-4 border-top text-center text-muted small">
+                                <p class="mb-1">This is a computer-generated payslip. No signature required.</p>
+                                <p class="mb-0">Generated on ${new Date().toLocaleDateString()} at ${new Date().toLocaleTimeString()}</p>
                             </div>
                         </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" onclick="PayrollManager.printPayslip()">
-                                <i class="bi bi-printer me-1"></i> Print
-                            </button>
-                            <button type="button" class="btn btn-success" onclick="PayrollManager.downloadPayslip(${employee.id}, '${monthDetails.year}', '${monthDetails.monthName}')">
-                                <i class="bi bi-download me-1"></i> Download PDF
-                            </button>
-                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                        <button type="button" class="btn btn-primary" onclick="PayrollManager.printPayslip()">
+                            <i class="bi bi-printer me-1"></i> Print
+                        </button>
+                        <button type="button" class="btn btn-success" onclick="PayrollManager.downloadPayslip(${employee.id}, '${monthDetails.year}', '${monthDetails.monthName}')">
+                            <i class="bi bi-download me-1"></i> Download PDF
+                        </button>
                     </div>
                 </div>
             </div>
-        `;
+        </div>
+    `;
 
         // Add modal to DOM
         document.getElementById('modal-container').innerHTML = modalContent;

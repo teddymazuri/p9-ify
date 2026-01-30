@@ -1,13 +1,17 @@
 class EmployeeManager {
     constructor() {
         this.employees = StateManager.getEmployees();
+        this.currentPage = 1;
+        this.itemsPerPage = 10; // You can adjust this number
         this.initEvents();
     }
 
     initEvents() {
         StateManager.on('employeesUpdated', (employees) => {
             this.employees = employees;
+            this.currentPage = 1; // Reset to first page on updates
             this.renderTable();
+            this.renderPagination();
         });
     }
 
@@ -15,7 +19,12 @@ class EmployeeManager {
         const container = document.getElementById(containerId);
         if (!container) return;
 
-        const html = this.employees.map(emp => `
+        // Calculate pagination
+        const startIndex = (this.currentPage - 1) * this.itemsPerPage;
+        const endIndex = startIndex + this.itemsPerPage;
+        const paginatedEmployees = this.employees.slice(startIndex, endIndex);
+
+        const html = paginatedEmployees.map(emp => `
             <tr>
                 <td class="ps-4 fw-bold">${emp.name}</td>
                 <td><code>${emp.pin}</code></td>
@@ -36,6 +45,102 @@ class EmployeeManager {
         `).join('');
 
         container.innerHTML = html || '<tr><td colspan="5" class="text-center py-4 text-muted">No employees added yet.</td></tr>';
+    }
+
+    renderPagination(containerId = 'pagination-container') {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+
+        const totalPages = Math.ceil(this.employees.length / this.itemsPerPage);
+        
+        if (totalPages <= 1) {
+            container.innerHTML = '';
+            return;
+        }
+
+        let paginationHTML = `
+            <nav aria-label="Employee pagination">
+                <ul class="pagination justify-content-center mb-0">
+        `;
+
+        // Previous button
+        paginationHTML += `
+            <li class="page-item ${this.currentPage === 1 ? 'disabled' : ''}">
+                <button class="page-link" onclick="EmployeeManager.goToPage(${this.currentPage - 1})" ${this.currentPage === 1 ? 'disabled' : ''}>
+                    &laquo;
+                </button>
+            </li>
+        `;
+
+        // Page numbers
+        const maxVisiblePages = 5;
+        let startPage = Math.max(1, this.currentPage - Math.floor(maxVisiblePages / 2));
+        let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1);
+
+        // Adjust start page if we're near the end
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1);
+        }
+
+        // First page
+        if (startPage > 1) {
+            paginationHTML += `
+                <li class="page-item">
+                    <button class="page-link" onclick="EmployeeManager.goToPage(1)">1</button>
+                </li>
+            `;
+            if (startPage > 2) {
+                paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+        }
+
+        // Page numbers
+        for (let i = startPage; i <= endPage; i++) {
+            paginationHTML += `
+                <li class="page-item ${this.currentPage === i ? 'active' : ''}">
+                    <button class="page-link" onclick="EmployeeManager.goToPage(${i})">${i}</button>
+                </li>
+            `;
+        }
+
+        // Last page
+        if (endPage < totalPages) {
+            if (endPage < totalPages - 1) {
+                paginationHTML += `<li class="page-item disabled"><span class="page-link">...</span></li>`;
+            }
+            paginationHTML += `
+                <li class="page-item">
+                    <button class="page-link" onclick="EmployeeManager.goToPage(${totalPages})">${totalPages}</button>
+                </li>
+            `;
+        }
+
+        // Next button
+        paginationHTML += `
+            <li class="page-item ${this.currentPage === totalPages ? 'disabled' : ''}">
+                <button class="page-link" onclick="EmployeeManager.goToPage(${this.currentPage + 1})" ${this.currentPage === totalPages ? 'disabled' : ''}>
+                    &raquo;
+                </button>
+            </li>
+        `;
+
+        paginationHTML += `
+                </ul>
+            </nav>
+        `;
+
+        container.innerHTML = paginationHTML;
+    }
+
+    static goToPage(pageNumber) {
+        const manager = new EmployeeManager();
+        const totalPages = Math.ceil(manager.employees.length / manager.itemsPerPage);
+        
+        if (pageNumber < 1 || pageNumber > totalPages) return;
+        
+        manager.currentPage = pageNumber;
+        manager.renderTable();
+        manager.renderPagination();
     }
 
     static addEmployee(name, pin, employeeId = '', nationalId = '') {
@@ -107,6 +212,9 @@ class EmployeeManager {
     }
 
     static viewEmployee(id) {
+        // Clean up any existing modals first
+        this.cleanupExistingModals();
+        
         const employee = StateManager.getEmployees().find(e => e.id == id);
         if (!employee) return;
 
@@ -140,14 +248,11 @@ class EmployeeManager {
                                             <h6 class="mb-0">Quick Actions</h6>
                                         </div>
                                         <div class="card-body d-grid gap-2">
-                                            <button class="btn btn-outline-success" onclick="EmployeeManager.editEmployee(${employee.id}); bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();">
+                                            <button class="btn btn-outline-success" onclick="EmployeeManager.closeModalAnd('employeeModal', () => EmployeeManager.editEmployee(${employee.id}))">
                                                 ✏️ Edit Employee
                                             </button>
-                                            <button class="btn btn-outline-primary" onclick="PayrollManager.viewPayslip(${employee.id}); bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();">
+                                            <button class="btn btn-outline-primary" onclick="EmployeeManager.closeModalAnd('employeeModal', () => PayrollManager.viewPayslip(${employee.id}))">
                                                 💰 View Latest Payslip
-                                            </button>
-                                            <button class="btn btn-outline-info" onclick="P9Generator.generateForEmployee(${employee.id}); bootstrap.Modal.getInstance(document.getElementById('employeeModal')).hide();">
-                                                📄 Generate P9
                                             </button>
                                         </div>
                                     </div>
@@ -183,8 +288,21 @@ class EmployeeManager {
             </div>
         `;
 
-        document.getElementById('modal-container').innerHTML = modalContent;
-        const modal = new bootstrap.Modal(document.getElementById('employeeModal'));
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) {
+            console.error('Modal container not found');
+            return;
+        }
+        
+        modalContainer.innerHTML = modalContent;
+        const modalElement = document.getElementById('employeeModal');
+        
+        // Set up event listeners for proper cleanup
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            EmployeeManager.cleanupModal(modalElement);
+        });
+        
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
         
         // Load history
@@ -192,6 +310,9 @@ class EmployeeManager {
     }
 
     static editEmployee(id) {
+        // Clean up any existing modals first
+        this.cleanupExistingModals();
+        
         const employee = StateManager.getEmployees().find(e => e.id == id);
         if (!employee) return;
 
@@ -233,8 +354,21 @@ class EmployeeManager {
             </div>
         `;
 
-        document.getElementById('modal-container').innerHTML = modalContent;
-        const modal = new bootstrap.Modal(document.getElementById('editEmployeeModal'));
+        const modalContainer = document.getElementById('modal-container');
+        if (!modalContainer) {
+            console.error('Modal container not found');
+            return;
+        }
+        
+        modalContainer.innerHTML = modalContent;
+        const modalElement = document.getElementById('editEmployeeModal');
+        
+        // Set up event listeners for proper cleanup
+        modalElement.addEventListener('hidden.bs.modal', function () {
+            EmployeeManager.cleanupModal(modalElement);
+        });
+        
+        const modal = new bootstrap.Modal(modalElement);
         modal.show();
     }
 
@@ -253,7 +387,13 @@ class EmployeeManager {
         };
 
         if (this.updateEmployee(id, updates)) {
-            bootstrap.Modal.getInstance(document.getElementById('editEmployeeModal')).hide();
+            const modalElement = document.getElementById('editEmployeeModal');
+            if (modalElement) {
+                const modal = bootstrap.Modal.getInstance(modalElement);
+                if (modal) {
+                    modal.hide();
+                }
+            }
             new EmployeeManager().renderTable();
         }
     }
@@ -339,12 +479,89 @@ class EmployeeManager {
         Utils.showToast('Employee data exported', 'success');
     }
 
+    // Cleanup helper methods
+    static cleanupModal(modalElement) {
+        if (!modalElement) return;
+        
+        // Dispose of the Bootstrap modal instance
+        const modalInstance = bootstrap.Modal.getInstance(modalElement);
+        if (modalInstance) {
+            modalInstance.dispose();
+        }
+        
+        // Remove the modal from DOM after animation completes
+        setTimeout(() => {
+            if (modalElement && modalElement.parentNode) {
+                modalElement.parentNode.removeChild(modalElement);
+            }
+            
+            // Check if there are any other modals open
+            const remainingModals = document.querySelectorAll('.modal.show');
+            if (remainingModals.length === 0) {
+                // Clean up backdrop if no modals are showing
+                this.cleanupBackdrop();
+            }
+        }, 300); // Match Bootstrap's fade animation duration
+    }
+    
+    static cleanupExistingModals() {
+        // Close and dispose of any currently open modals
+        const openModals = document.querySelectorAll('.modal.show');
+        openModals.forEach(modal => {
+            const modalInstance = bootstrap.Modal.getInstance(modal);
+            if (modalInstance) {
+                modalInstance.hide();
+                // Let the hidden event handle cleanup
+            }
+        });
+    }
+    
+    static cleanupBackdrop() {
+        // Remove modal backdrop
+        const backdrop = document.querySelector('.modal-backdrop');
+        if (backdrop && backdrop.parentNode) {
+            backdrop.parentNode.removeChild(backdrop);
+        }
+        
+        // Remove modal-open class and inline styles from body
+        document.body.classList.remove('modal-open');
+        document.body.style.overflow = '';
+        document.body.style.paddingRight = '';
+    }
+    
+    static closeModalAnd(modalId, callback) {
+        const modalElement = document.getElementById(modalId);
+        if (modalElement) {
+            const modalInstance = bootstrap.Modal.getInstance(modalElement);
+            if (modalInstance) {
+                // Hide the modal first
+                modalInstance.hide();
+                
+                // Set up a one-time event listener for when the modal is fully hidden
+                const onHidden = () => {
+                    modalElement.removeEventListener('hidden.bs.modal', onHidden);
+                    this.cleanupModal(modalElement);
+                    
+                    // Execute the callback after a short delay to ensure cleanup is complete
+                    setTimeout(callback, 100);
+                };
+                
+                modalElement.addEventListener('hidden.bs.modal', onHidden);
+                return;
+            }
+        }
+        
+        // If modal wasn't found or couldn't be closed, just execute the callback
+        callback();
+    }
+
     // Render the employee management UI
     static renderUI(containerId = 'tab-content') {
         const container = document.getElementById(containerId);
         if (!container) return;
 
         const employeeCount = StateManager.getEmployees().length;
+        const totalPages = Math.ceil(employeeCount / 10); // 10 items per page
         
         container.innerHTML = `
             <div class="card p-4 mb-4">
@@ -382,10 +599,25 @@ class EmployeeManager {
             
             <div class="card p-0 overflow-hidden">
                 <div class="card-header bg-light d-flex justify-content-between align-items-center">
-                    <h5 class="mb-0">Employee Register</h5>
-                    <div class="small text-muted">
-                        Showing ${employeeCount} employee${employeeCount !== 1 ? 's' : ''}
+                    <div>
+                        <h5 class="mb-0">Employee Register</h5>
+                        <div class="small text-muted">
+                            Showing ${employeeCount} employee${employeeCount !== 1 ? 's' : ''}
+                            ${employeeCount > 10 ? `(Page 1 of ${totalPages})` : ''}
+                        </div>
                     </div>
+                    ${employeeCount > 10 ? `
+                    <div class="dropdown">
+                        <button class="btn btn-sm btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false">
+                            <i class="bi bi-list-columns"></i> Rows per page
+                        </button>
+                        <ul class="dropdown-menu">
+                            <li><button class="dropdown-item ${this.itemsPerPage === 10 ? 'active' : ''}" onclick="EmployeeManager.changeItemsPerPage(10)">10 per page</button></li>
+                            <li><button class="dropdown-item ${this.itemsPerPage === 25 ? 'active' : ''}" onclick="EmployeeManager.changeItemsPerPage(25)">25 per page</button></li>
+                            <li><button class="dropdown-item ${this.itemsPerPage === 50 ? 'active' : ''}" onclick="EmployeeManager.changeItemsPerPage(50)">50 per page</button></li>
+                            <li><button class="dropdown-item ${this.itemsPerPage === 100 ? 'active' : ''}" onclick="EmployeeManager.changeItemsPerPage(100)">100 per page</button></li>
+                        </ul>
+                    </div>` : ''}
                 </div>
                 <div class="table-responsive">
                     <table class="table table-hover mb-0">
@@ -403,17 +635,15 @@ class EmployeeManager {
                 </div>
                 ${employeeCount > 0 ? `
                 <div class="card-footer bg-light">
-                    <div class="row">
+                    <div class="row align-items-center">
                         <div class="col-md-6">
-                            <button class="btn btn-sm btn-outline-secondary" onclick="EmployeeManager.exportAllEmployees()">
-                                📥 Export All Employees
-                            </button>
-                        </div>
-                        <div class="col-md-6 text-end">
                             <div class="form-check form-switch d-inline-block me-3">
                                 <input class="form-check-input" type="checkbox" id="showEmptyFields" checked onchange="EmployeeManager.toggleEmptyFields()">
                                 <label class="form-check-label small" for="showEmptyFields">Show empty fields</label>
                             </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div id="pagination-container" class="d-flex justify-content-end"></div>
                         </div>
                     </div>
                 </div>` : ''}
@@ -435,8 +665,26 @@ class EmployeeManager {
             }
         };
 
-        // Render the table
-        new EmployeeManager().renderTable();
+        // Render the table and pagination
+        const manager = new EmployeeManager();
+        manager.renderTable();
+        manager.renderPagination();
+    }
+
+    static changeItemsPerPage(itemsPerPage) {
+        const manager = new EmployeeManager();
+        manager.itemsPerPage = itemsPerPage;
+        manager.currentPage = 1; // Reset to first page when changing items per page
+        manager.renderTable();
+        manager.renderPagination();
+        
+        // Update the display text in the header
+        const employeeCount = StateManager.getEmployees().length;
+        const totalPages = Math.ceil(employeeCount / itemsPerPage);
+        const headerText = document.querySelector('.card-header .small.text-muted');
+        if (headerText && employeeCount > itemsPerPage) {
+            headerText.textContent = `Showing ${employeeCount} employees (Page 1 of ${totalPages})`;
+        }
     }
 
     static toggleEmptyFields() {
@@ -458,18 +706,5 @@ class EmployeeManager {
                 }
             }
         });
-    }
-
-    static exportAllEmployees() {
-        const employees = StateManager.getEmployees();
-        const data = {
-            employees: employees,
-            exportDate: new Date().toISOString(),
-            count: employees.length
-        };
-        
-        const filename = `Employees-Export-${new Date().toISOString().slice(0, 10)}.json`;
-        Utils.downloadJSON(data, filename);
-        Utils.showToast(`${employees.length} employees exported`, 'success');
     }
 }
