@@ -3,23 +3,19 @@ class PayslipManager {
     static itemsPerPage = 10;
     static filteredPayslips = [];
     
-    // Render all payslips with pagination
-    static renderPayslipsUI(containerId = 'tab-content') {
-        const container = document.getElementById(containerId);
-        if (!container) return;
-        
+    // Initialize payslips data
+    static initPayslipsData() {
         const payrolls = StateManager.getPayrolls();
         const employees = StateManager.getEmployees();
         
-        // Transform payrolls into an array for easier handling
-        const payslips = [];
+        this.filteredPayslips = [];
         Object.keys(payrolls).forEach(key => {
             const [year, month, employeeId] = key.split('-');
             const employee = employees.find(e => e.id == employeeId);
             
             if (employee) {
                 const payrollData = payrolls[key];
-                payslips.push({
+                this.filteredPayslips.push({
                     key,
                     year,
                     month,
@@ -36,17 +32,24 @@ class PayslipManager {
         });
         
         // Sort by date (newest first)
-        payslips.sort((a, b) => b.date - a.date);
+        this.filteredPayslips.sort((a, b) => b.date - a.date);
+    }
+    
+    // Render all payslips with pagination
+    static renderPayslipsUI(containerId = 'tab-content') {
+        const container = document.getElementById(containerId);
+        if (!container) return;
         
-        // Store filtered payslips for pagination
-        this.filteredPayslips = payslips;
-        const totalPayslips = payslips.length;
+        // Initialize data
+        this.initPayslipsData();
+        
+        const totalPayslips = this.filteredPayslips.length;
         const totalPages = Math.ceil(totalPayslips / this.itemsPerPage);
         
         // Calculate pagination
         const startIndex = (this.currentPage - 1) * this.itemsPerPage;
         const endIndex = startIndex + this.itemsPerPage;
-        const paginatedPayslips = payslips.slice(startIndex, endIndex);
+        const paginatedPayslips = this.filteredPayslips.slice(startIndex, endIndex);
         
         container.innerHTML = `
             <div class="card p-0 overflow-hidden">
@@ -144,15 +147,14 @@ class PayslipManager {
                             </div>
                         </div>
                         <div class="col-md-6">
-                            <div id="payslip-pagination-container" class="d-flex justify-content-end"></div>
+                            <div id="payslip-pagination-container" class="d-flex justify-content-end">
+                                ${this.renderPaginationHTML()}
+                            </div>
                         </div>
                     </div>
                 </div>` : ''}
             </div>
         `;
-        
-        // Render pagination
-        this.renderPagination();
     }
     
     static renderSearch() {
@@ -167,16 +169,12 @@ class PayslipManager {
         `;
     }
     
-    static renderPagination() {
-        const container = document.getElementById('payslip-pagination-container');
-        if (!container) return;
-        
+    static renderPaginationHTML() {
         const totalPayslips = this.filteredPayslips.length;
         const totalPages = Math.ceil(totalPayslips / this.itemsPerPage);
         
         if (totalPages <= 1) {
-            container.innerHTML = '';
-            return;
+            return '';
         }
         
         let paginationHTML = `
@@ -250,7 +248,7 @@ class PayslipManager {
             </nav>
         `;
         
-        container.innerHTML = paginationHTML;
+        return paginationHTML;
     }
     
     static goToPage(pageNumber) {
@@ -275,29 +273,7 @@ class PayslipManager {
         
         if (!searchTerm.trim()) {
             // Reset to all payslips
-            this.filteredPayslips = [];
-            Object.keys(payrolls).forEach(key => {
-                const [year, month, employeeId] = key.split('-');
-                const employee = employees.find(e => e.id == employeeId);
-                
-                if (employee) {
-                    const payrollData = payrolls[key];
-                    this.filteredPayslips.push({
-                        key,
-                        year,
-                        month,
-                        employee,
-                        payrollData,
-                        monthName: month,
-                        date: new Date(year, ["January","February","March","April","May","June",
-                                             "July","August","September","October","November","December"]
-                                             .indexOf(month), 1),
-                        netPay: payrollData.net || 0,
-                        grossPay: payrollData.basic + (payrollData.benefits || 0) + (payrollData.quarters || 0)
-                    });
-                }
-            });
-            this.filteredPayslips.sort((a, b) => b.date - a.date);
+            this.initPayslipsData();
         } else {
             // Filter payslips
             this.filteredPayslips = [];
@@ -310,16 +286,16 @@ class PayslipManager {
                     
                     // Check if search term matches any field
                     const searchFields = [
-                        employee.name,
-                        employee.pin,
-                        employee.employeeId || '',
-                        month,
+                        employee.name.toLowerCase(),
+                        employee.pin.toLowerCase(),
+                        employee.employeeId ? employee.employeeId.toLowerCase() : '',
+                        month.toLowerCase(),
                         year,
                         payrollData.net?.toString() || '',
                         payrollData.basic?.toString() || ''
                     ];
                     
-                    if (searchFields.some(field => field.toLowerCase().includes(searchTerm))) {
+                    if (searchFields.some(field => field.includes(searchTerm))) {
                         this.filteredPayslips.push({
                             key,
                             year,
@@ -351,7 +327,7 @@ class PayslipManager {
         }
     }
     
-    // Keep your existing methods below...
+    // Keep your existing generatePayslip, viewExistingPayslip, etc. methods below...
     static generatePayslip(employee, payrollData, monthDetails, settings = null) {
         if (!settings) {
             settings = StateManager.getSettings();
