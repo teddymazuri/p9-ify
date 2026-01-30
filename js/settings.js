@@ -305,8 +305,11 @@ class SettingsManager {
                         </div>
                         <div class="modal-body">
                             <div class="mb-3">
-                                <button class="btn btn-primary btn-sm" onclick="BackupManager.createAutoBackup(); bootstrap.Modal.getInstance(document.getElementById('backupManagerModal')).hide();">
+                                <button class="btn btn-primary btn-sm me-2" onclick="BackupManager.createAutoBackup(); bootstrap.Modal.getInstance(document.getElementById('backupManagerModal')).hide();">
                                     + Create New Backup
+                                </button>
+                                <button class="btn btn-success btn-sm" onclick="SettingsManager.uploadBackupFile()">
+                                    📁 Upload Backup File
                                 </button>
                             </div>
                             
@@ -362,5 +365,76 @@ class SettingsManager {
         document.getElementById('modal-container').innerHTML = modalContent;
         const modal = new bootstrap.Modal(document.getElementById('backupManagerModal'));
         modal.show();
+    }
+
+    static uploadBackupFile() {
+        // Create a file input element
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = '.json,application/json';
+        fileInput.style.display = 'none';
+        
+        fileInput.onchange = (event) => {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            if (!file.name.endsWith('.json')) {
+                Utils.showToast('Please select a valid JSON file', 'error');
+                return;
+            }
+            
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                try {
+                    const backupData = JSON.parse(e.target.result);
+                    
+                    // Validate the backup structure
+                    if (!backupData.employees || !backupData.settings || !backupData.payrolls) {
+                        Utils.showToast('Invalid backup file structure', 'error');
+                        return;
+                    }
+                    
+                    // Ask for confirmation
+                    if (confirm('This will overwrite your current data. Are you sure you want to restore from this backup file?')) {
+                        // Create a backup entry
+                        const newBackup = {
+                            id: 'imported_' + Date.now(),
+                            timestamp: Date.now(),
+                            size: file.size,
+                            data: backupData
+                        };
+                        
+                        // Get existing backups
+                        const backups = BackupManager.getBackups();
+                        backups.unshift(newBackup);
+                        
+                        // Save to localStorage
+                        localStorage.setItem('payroll_backups', JSON.stringify(backups));
+                        
+                        // Restore the backup
+                        BackupManager.restoreBackup(newBackup.id);
+                        
+                        // Close the modal
+                        const modal = bootstrap.Modal.getInstance(document.getElementById('backupManagerModal'));
+                        if (modal) modal.hide();
+                        
+                        Utils.showToast('Backup imported and restored successfully!', 'success');
+                    }
+                } catch (error) {
+                    console.error('Error parsing backup file:', error);
+                    Utils.showToast('Error parsing backup file. Please check the file format.', 'error');
+                }
+            };
+            
+            reader.onerror = () => {
+                Utils.showToast('Error reading file', 'error');
+            };
+            
+            reader.readAsText(file);
+        };
+        
+        document.body.appendChild(fileInput);
+        fileInput.click();
+        document.body.removeChild(fileInput);
     }
 }
