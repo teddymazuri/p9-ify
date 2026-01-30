@@ -70,12 +70,8 @@ class P9ifyApp {
         const employees = StateManager.getEmployees();
         const payrolls = StateManager.getPayrolls();
         
-        console.log('Raw payroll data:', payrolls); // Debug log
-        
         // Get unique years from payroll data
         const years = this.extractUniqueYears(payrolls);
-        
-        console.log('Extracted years:', years); // Debug log
         
         // Collect all payslips
         const allPayslips = [];
@@ -86,8 +82,6 @@ class P9ifyApp {
             
             // Skip if no basic pay
             if (!payroll || payroll.basic <= 0) return;
-            
-            console.log(`Processing payroll key: ${key}`); // Debug log
             
             // Extract employee ID from key - handle different formats
             let employeeId = null;
@@ -108,8 +102,6 @@ class P9ifyApp {
                     
                     // Convert month name to number
                     month = this.getMonthNumberFromName(monthName);
-                    
-                    console.log(`Parsed key ${key}: year=${year}, month=${month} (${monthName}), employeeId=${employeeId}`);
                 }
             }
             
@@ -148,7 +140,7 @@ class P9ifyApp {
                 emp.id.toString() === employeeId.toString()
             );
             if (!employee) {
-                console.warn(`Employee not found for ID: ${employeeId}`, {employees});
+                console.warn(`Employee not found for ID: ${employeeId}`);
                 return;
             }
             
@@ -169,8 +161,6 @@ class P9ifyApp {
             });
         });
 
-        console.log('All payslips collected:', allPayslips); // Debug log
-
         // Sort by year and month (descending)
         allPayslips.sort((a, b) => {
             if (a.year !== b.year) return b.year - a.year;
@@ -179,7 +169,15 @@ class P9ifyApp {
 
         container.innerHTML = `
             <div class="card p-4">
-                <h4 class="fw-bold mb-4">Generated Payslips</h4>
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <div>
+                        <h4 class="fw-bold m-0">Generated Payslips</h4>
+                        <p class="text-muted small m-0">View and manage all generated payslips</p>
+                    </div>
+                    <button class="btn btn-success" onclick="PayslipManager.generateAllPayslipsModal()">
+                        <i class="bi bi-eye me-1"></i> View All Payslips
+                    </button>
+                </div>
                 
                 <!-- Filter Controls -->
                 <div class="row mb-4 g-3">
@@ -208,10 +206,46 @@ class P9ifyApp {
                     </div>
                 </div>
                 
+                <!-- Summary Stats -->
+                <div class="row mb-4">
+                    <div class="col-md-3">
+                        <div class="card bg-light border">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-success">${allPayslips.length}</h5>
+                                <p class="card-text small text-muted">Total Payslips</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light border">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-primary">${new Set(allPayslips.map(p => p.employeeId)).size}</h5>
+                                <p class="card-text small text-muted">Employees</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light border">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-info">${new Set(allPayslips.map(p => p.year)).size}</h5>
+                                <p class="card-text small text-muted">Years</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card bg-light border">
+                            <div class="card-body text-center">
+                                <h5 class="card-title text-warning">KES ${allPayslips.reduce((sum, p) => sum + (p.data.net || 0), 0).toLocaleString()}</h5>
+                                <p class="card-text small text-muted">Total Net Pay</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
                 <!-- Payslips Table -->
                 <div id="payslips-container">
                     ${allPayslips.length === 0 ? 
-                        '<p class="text-muted text-center py-4">No payslips generated yet. Add payroll data first.</p>' :
+                        '<div class="text-center py-5"><i class="bi bi-receipt display-4 text-muted mb-3"></i><p class="text-muted">No payslips generated yet. Add payroll data first.</p></div>' :
                         this.renderFilteredPayslips(allPayslips)
                     }
                 </div>
@@ -265,44 +299,66 @@ class P9ifyApp {
 
     renderFilteredPayslips(payslips) {
         if (payslips.length === 0) {
-            return '<p class="text-muted text-center py-4">No payslips found matching the selected filters.</p>';
+            return '<div class="text-center py-5"><p class="text-muted">No payslips found matching the selected filters.</p></div>';
         }
 
         return `
             <div class="table-responsive">
-                <table class="table table-hover">
-                    <thead>
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
                         <tr>
                             <th>Employee</th>
                             <th>Month</th>
-                            <th>Gross Pay</th>
+                            <th>Basic Pay</th>
                             <th>Net Pay</th>
+                            <th>NSSF (50/50 Split)</th>
                             <th class="text-end">Actions</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${payslips.map(slip => `
-                            <tr>
-                                <td>${slip.employee}</td>
-                                <td>${slip.month}</td>
-                                <td>KES ${slip.data.gross?.toLocaleString() || slip.data.basic?.toLocaleString() || '0'}</td>
-                                <td>KES ${slip.data.net?.toLocaleString() || '0'}</td>
-                                <td class="text-end">
-                                    <button class="btn btn-sm btn-outline-success" 
-                                            onclick="P9ifyApp.previewPayslip('${slip.key}')">
-                                        <i class="bi bi-eye me-1"></i> Preview
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-primary ms-1" 
-                                            onclick="P9ifyApp.downloadPayslipPDF('${slip.key}')">
-                                        <i class="bi bi-file-pdf me-1"></i> PDF
-                                    </button>
-                                    <button class="btn btn-sm btn-outline-warning ms-1" 
-                                            onclick="window.printPayslip('${slip.key}')">
-                                        <i class="bi bi-printer me-1"></i> Print
-                                    </button>
-                                </td>
-                            </tr>
-                        `).join('')}
+                        ${payslips.map(slip => {
+                            const nssfTotal = slip.data.nssf || 0;
+                            const nssfEmployee = Math.round(nssfTotal / 2);
+                            const nssfEmployer = Math.round(nssfTotal / 2);
+                            
+                            return `
+                                <tr>
+                                    <td>
+                                        <div class="fw-bold">${slip.employee}</div>
+                                        <div class="text-muted small">${slip.employeeObj.employeeId || slip.employeeObj.pin}</div>
+                                    </td>
+                                    <td>
+                                        <div class="fw-bold">${slip.monthName}</div>
+                                        <div class="text-muted small">${slip.year}</div>
+                                    </td>
+                                    <td class="fw-bold">KES ${slip.data.basic?.toLocaleString() || '0'}</td>
+                                    <td class="fw-bold text-success">KES ${slip.data.net?.toLocaleString() || '0'}</td>
+                                    <td>
+                                        <div class="small">
+                                            <div>Employee: KES ${nssfEmployee.toLocaleString()}</div>
+                                            <div>Employer: KES ${nssfEmployer.toLocaleString()}</div>
+                                            <div class="text-muted">Total: KES ${nssfTotal.toLocaleString()}</div>
+                                        </div>
+                                    </td>
+                                    <td class="text-end">
+                                        <div class="btn-group btn-group-sm" role="group">
+                                            <button class="btn btn-outline-success" 
+                                                    onclick="PayslipManager.viewExistingPayslip('${slip.key}')">
+                                                <i class="bi bi-eye me-1"></i> View
+                                            </button>
+                                            <button class="btn btn-outline-primary" 
+                                                    onclick="PayslipManager.downloadSinglePayslipPDF('${slip.key}')">
+                                                <i class="bi bi-file-pdf me-1"></i> PDF
+                                            </button>
+                                            <button class="btn btn-outline-warning" 
+                                                    onclick="PayslipManager.printSinglePayslipFromKey('${slip.key}')">
+                                                <i class="bi bi-printer me-1"></i> Print
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            `;
+                        }).join('')}
                     </tbody>
                 </table>
             </div>
@@ -311,7 +367,6 @@ class P9ifyApp {
 
     filterPayslips() {
         if (!this.currentPayslipsData || this.currentPayslipsData.length === 0) {
-            console.log('No payslips data available to filter');
             return;
         }
 
@@ -319,37 +374,26 @@ class P9ifyApp {
         const yearFilter = document.getElementById('yearFilter');
         
         if (!employeeFilter || !yearFilter) {
-            console.error('Filter elements not found');
             return;
         }
         
         const selectedEmployee = employeeFilter.value;
         const selectedYear = yearFilter.value;
 
-        console.log('Filtering with:', {selectedEmployee, selectedYear, dataCount: this.currentPayslipsData.length});
-
         let filtered = this.currentPayslipsData;
 
         // Apply employee filter
         if (selectedEmployee !== 'all') {
             filtered = filtered.filter(slip => {
-                const matches = slip.employeeId.toString() === selectedEmployee.toString();
-                console.log(`Employee filter: ${slip.employeeId} === ${selectedEmployee} = ${matches}`, slip);
-                return matches;
+                return slip.employeeId.toString() === selectedEmployee.toString();
             });
         }
 
         // Apply year filter
         if (selectedYear !== 'all') {
             const year = parseInt(selectedYear);
-            filtered = filtered.filter(slip => {
-                const matches = slip.year === year;
-                console.log(`Year filter: ${slip.year} === ${year} = ${matches}`, slip);
-                return matches;
-            });
+            filtered = filtered.filter(slip => slip.year === year);
         }
-
-        console.log('Filtered results:', filtered);
 
         // Update the table
         const container = document.getElementById('payslips-container');
@@ -367,367 +411,6 @@ class P9ifyApp {
         
         this.filterPayslips();
     }
-
-    static previewPayslip(payrollKey) {
-        const [year, monthName, employeeId] = payrollKey.split('-');
-        const employee = StateManager.getEmployees().find(e => e.id == employeeId);
-        const payrollData = StateManager.getPayrolls()[payrollKey];
-        
-        if (!employee || !payrollData) {
-            Utils.showToast('Payslip data not found', 'error');
-            return;
-        }
-
-        // Generate payslip content
-        const settings = StateManager.getSettings();
-        const grossPay = payrollData.basic + (payrollData.benefits || 0) + (payrollData.quarters || 0);
-        const totalDeductions = (payrollData.nssf || 0) + (payrollData.shif || 0) + 
-                               (payrollData.ahl || 0) + (payrollData.paye || 0);
-        
-        const payslipHTML = `
-            <div class="payslip-container" id="payslip-preview-${payrollKey}">
-                <style>
-                    .payslip-container { 
-                        max-width: 800px; 
-                        margin: 0 auto; 
-                        background: white; 
-                        padding: 25px;
-                        border: 2px solid #15803d;
-                        border-radius: 8px;
-                    }
-                    .payslip-header { 
-                        border-bottom: 2px solid #15803d; 
-                        padding-bottom: 15px; 
-                        margin-bottom: 20px;
-                    }
-                    .company-logo { max-height: 70px; max-width: 150px; }
-                    .amount-big { font-size: 2rem; font-weight: 800; }
-                    .text-company { color: #14532d; font-weight: 700; }
-                    .border-success { border-color: #15803d !important; }
-                    .bg-light-green { background-color: #f0fdf4 !important; }
-                    @media print {
-                        .no-print { display: none !important; }
-                        .payslip-container { border: none; padding: 0; }
-                    }
-                </style>
-                
-                <div class="payslip-header">
-                    <div class="d-flex justify-content-between align-items-start">
-                        <div>
-                            <h3 class="text-company mb-1">${settings.name}</h3>
-                            <p class="text-muted small mb-1">${settings.address || ''}</p>
-                            <p class="text-muted small mb-0">PIN: ${settings.pin}</p>
-                        </div>
-                        ${settings.logo ? `<img src="${settings.logo}" class="company-logo">` : ''}
-                    </div>
-                </div>
-                
-                <div class="row mb-4">
-                    <div class="col-md-6">
-                        <div class="card border-success mb-3">
-                            <div class="card-header bg-success text-white py-2">
-                                <strong>Employee Details</strong>
-                            </div>
-                            <div class="card-body">
-                                <p class="mb-1"><strong>Name:</strong> ${employee.name}</p>
-                                <p class="mb-1"><strong>Employee ID:</strong> ${employee.employeeId || employee.pin || 'N/A'}</p>
-                                <p class="mb-1"><strong>KRA PIN:</strong> ${employee.pin}</p>
-                                ${employee.nationalId ? `<p class="mb-0"><strong>National ID:</strong> ${employee.nationalId}</p>` : ''}
-                            </div>
-                        </div>
-                    </div>
-                    <div class="col-md-6">
-                        <div class="card border-success mb-3">
-                            <div class="card-header bg-success text-white py-2">
-                                <strong>Payment Details</strong>
-                            </div>
-                            <div class="card-body">
-                                <p class="mb-1"><strong>Pay Period:</strong> ${monthName} ${year}</p>
-                                <p class="mb-1"><strong>Payment Date:</strong> ${new Date().toLocaleDateString('en-KE')}</p>
-                                <p class="mb-0"><strong>Payslip ID:</strong> ${payrollKey}</p>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Earnings -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="bg-light-green">
-                            <tr>
-                                <th colspan="2" class="text-center border-success">
-                                    <strong class="text-company">EARNINGS</strong>
-                                </th>
-                            </tr>
-                            <tr>
-                                <th width="80%">Description</th>
-                                <th width="20%" class="text-end">Amount (KES)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>Basic Salary</td>
-                                <td class="text-end">${payrollData.basic.toLocaleString()}</td>
-                            </tr>
-                            ${payrollData.benefits ? `
-                            <tr>
-                                <td>Benefits</td>
-                                <td class="text-end">${payrollData.benefits.toLocaleString()}</td>
-                            </tr>
-                            ` : ''}
-                            ${payrollData.quarters ? `
-                            <tr>
-                                <td>Quarters Allowance</td>
-                                <td class="text-end">${payrollData.quarters.toLocaleString()}</td>
-                            </tr>
-                            ` : ''}
-                            <tr class="table-success">
-                                <td><strong>TOTAL GROSS PAY</strong></td>
-                                <td class="text-end"><strong>${grossPay.toLocaleString()}</strong></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Deductions -->
-                <div class="table-responsive mb-4">
-                    <table class="table table-bordered">
-                        <thead class="bg-light-green">
-                            <tr>
-                                <th colspan="2" class="text-center border-success">
-                                    <strong class="text-company">DEDUCTIONS</strong>
-                                </th>
-                            </tr>
-                            <tr>
-                                <th width="80%">Description</th>
-                                <th width="20%" class="text-end">Amount (KES)</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            <tr>
-                                <td>NSSF Contribution</td>
-                                <td class="text-end">${(payrollData.nssf || 0).toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td>SHIF Contribution</td>
-                                <td class="text-end">${(payrollData.shif || 0).toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td>Affordable Housing Levy</td>
-                                <td class="text-end">${(payrollData.ahl || 0).toLocaleString()}</td>
-                            </tr>
-                            <tr>
-                                <td>PAYE Tax</td>
-                                <td class="text-end">${(payrollData.paye || 0).toLocaleString()}</td>
-                            </tr>
-                            <tr class="table-success">
-                                <td><strong>TOTAL DEDUCTIONS</strong></td>
-                                <td class="text-end"><strong>${totalDeductions.toLocaleString()}</strong></td>
-                            </tr>
-                        </tbody>
-                    </table>
-                </div>
-                
-                <!-- Net Pay -->
-                <div class="text-center p-4 bg-light-green border border-success rounded">
-                    <h5 class="text-muted mb-2">NET PAY</h5>
-                    <h1 class="amount-big text-success">KES ${payrollData.net?.toLocaleString() || '0'}</h1>
-                    <p class="text-muted mb-0">
-                        <em>${Utils.numberToWords(payrollData.net || 0)}</em>
-                    </p>
-                </div>
-                
-                <!-- Signatures -->
-                <div class="row mt-4 pt-4 border-top">
-                    <div class="col-6">
-                        <div class="text-center">
-                            <div style="border-bottom: 1px solid #000; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
-                            <p class="small mb-0">Employee's Signature</p>
-                            <p class="small text-muted">Date: ________________</p>
-                        </div>
-                    </div>
-                    <div class="col-6">
-                        <div class="text-center">
-                            <div style="border-bottom: 1px solid #000; width: 200px; height: 40px; margin: 0 auto 10px;"></div>
-                            <p class="small mb-0">Authorized Signatory</p>
-                            <p class="small text-muted">For: ${settings.name}</p>
-                        </div>
-                    </div>
-                </div>
-                
-                <!-- Footer -->
-                <div class="mt-4 text-center">
-                    <p class="small text-muted mb-0">
-                        Generated by P9-ify | ${new Date().toLocaleString('en-KE')}
-                    </p>
-                </div>
-            </div>
-        `;
-
-        // Create modal
-        const modalId = 'payslip-modal-' + payrollKey;
-        const modalHTML = `
-            <div class="modal fade" id="${modalId}" tabindex="-1" style="--bs-modal-width: 900px;">
-                <div class="modal-dialog modal-xl">
-                    <div class="modal-content">
-                        <div class="modal-header">
-                            <h5 class="modal-title">Payslip Preview - ${employee.name}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                        </div>
-                        <div class="modal-body">
-                            ${payslipHTML}
-                        </div>
-                        <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="button" class="btn btn-primary" onclick="P9ifyApp.printPayslip('${payrollKey}')">
-                                <i class="bi bi-printer me-1"></i> Print
-                            </button>
-                            <button type="button" class="btn btn-success" onclick="P9ifyApp.downloadPayslipPDF('${payrollKey}')">
-                                <i class="bi bi-file-pdf me-1"></i> Download PDF
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        `;
-
-        document.getElementById('modal-container').innerHTML = modalHTML;
-        const modal = new bootstrap.Modal(document.getElementById(modalId));
-        modal.show();
-    }
-
-    static printPayslip(payrollKey) {
-        // Store original body content
-        const originalBody = document.body.innerHTML;
-        
-        // Get payslip content
-        const payslipElement = document.getElementById(`payslip-preview-${payrollKey}`);
-        if (!payslipElement) {
-            Utils.showToast('Payslip content not found', 'error');
-            return;
-        }
-        
-        const payslipContent = payslipElement.outerHTML;
-        
-        // Create print window
-        const printWindow = window.open('', '_blank');
-        printWindow.document.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <title>Payslip Print</title>
-                <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css" rel="stylesheet">
-                <style>
-                    @media print {
-                        body { margin: 0; padding: 20px; }
-                        .no-print { display: none !important; }
-                        .payslip-container { border: 2px solid #000 !important; }
-                        table { page-break-inside: avoid; }
-                        h1, h2, h3, h4, h5 { page-break-after: avoid; }
-                    }
-                    body { font-family: Arial, sans-serif; }
-                    .payslip-container { 
-                        max-width: 800px !important; 
-                        margin: 0 auto !important; 
-                        padding: 25px !important;
-                        border: 2px solid #15803d !important;
-                    }
-                </style>
-            </head>
-            <body>
-                ${payslipContent}
-                <script>
-                    window.onload = function() {
-                        window.print();
-                        setTimeout(function() {
-                            window.close();
-                        }, 1000);
-                    }
-                </script>
-            </body>
-            </html>
-        `);
-        printWindow.document.close();
-        
-        // Close modal if open
-        const modal = bootstrap.Modal.getInstance(document.getElementById('payslip-modal-' + payrollKey));
-        if (modal) modal.hide();
-        
-        Utils.showToast('Opening print dialog...', 'info');
-    }
-
-    static downloadPayslipPDF(payrollKey) {
-        const [year, monthName, employeeId] = payrollKey.split('-');
-        const employee = StateManager.getEmployees().find(e => e.id == employeeId);
-        
-        if (!employee) {
-            Utils.showToast('Employee data not found', 'error');
-            return;
-        }
-
-        // Get payslip content
-        const payslipElement = document.getElementById(`payslip-preview-${payrollKey}`);
-        if (!payslipElement) {
-            // If modal is not open, create the content first
-            this.previewPayslip(payrollKey);
-            setTimeout(() => {
-                this.downloadPayslipPDF(payrollKey);
-            }, 500);
-            return;
-        }
-
-        // Clone the element to avoid modifying the original
-        const elementToPrint = payslipElement.cloneNode(true);
-        
-        // Remove any no-print classes
-        elementToPrint.querySelectorAll('.no-print').forEach(el => el.remove());
-        
-        // Check if html2pdf is available
-        if (typeof html2pdf === 'undefined') {
-            Utils.showToast('PDF library not loaded. Please check your internet connection.', 'error');
-            // Fallback to print
-            this.printPayslip(payrollKey);
-            return;
-        }
-
-        // Configure PDF options
-        const options = {
-            margin: [10, 10, 10, 10],
-            filename: `Payslip_${employee.name.replace(/\s+/g, '_')}_${monthName}_${year}.pdf`,
-            image: { type: 'jpeg', quality: 0.98 },
-            html2canvas: { 
-                scale: 2,
-                useCORS: true,
-                logging: false,
-                letterRendering: true
-            },
-            jsPDF: { 
-                unit: 'mm', 
-                format: 'a4', 
-                orientation: 'portrait',
-                compress: true
-            },
-            pagebreak: { mode: ['avoid-all', 'css', 'legacy'] }
-        };
-        
-        // Show loading indicator
-        Utils.showToast('Generating PDF...', 'info');
-        
-        // Generate PDF
-        html2pdf()
-            .from(elementToPrint)
-            .set(options)
-            .save()
-            .then(() => {
-                Utils.showToast('PDF downloaded successfully', 'success');
-            })
-            .catch((error) => {
-                console.error('PDF generation error:', error);
-                Utils.showToast('Error generating PDF. Please try printing instead.', 'error');
-                // Fallback to print
-                this.printPayslip(payrollKey);
-            });
-    }
 }
 
 // Global function for tab switching
@@ -739,9 +422,22 @@ function switchTab(tabName) {
 // Initialize app when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
     window.p9ifyApp = new P9ifyApp();
+});
+
+// Add this to the end of app.js to ensure PayslipManager is available
+document.addEventListener('DOMContentLoaded', () => {
+    window.p9ifyApp = new P9ifyApp();
+    
+    // Make sure PayslipManager is available globally
+    window.PayslipManager = PayslipManager;
     
     // Add global print function for backward compatibility
     window.printPayslip = function(payrollKey) {
-        P9ifyApp.printPayslip(payrollKey);
+        if (window.PayslipManager && typeof window.PayslipManager.printSinglePayslipFromKey === 'function') {
+            window.PayslipManager.printSinglePayslipFromKey(payrollKey);
+        } else {
+            console.error('PayslipManager not available');
+            Utils.showToast('Payslip functionality not loaded', 'error');
+        }
     };
 });

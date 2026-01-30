@@ -9,17 +9,22 @@ class PayrollManager {
         StateManager.on('employeesUpdated', () => this.renderPayrollTable());
     }
 
-    static calculatePayroll(basic, employeeId = null, monthDetails = null) {
+    static calculatePayroll(basic, nssf, employeeId = null, monthDetails = null) {
         const settings = StateManager.getSettings();
         const rates = settings.rates;
 
         // Convert to numbers
         basic = parseFloat(basic) || 0;
+        nssf = parseFloat(nssf) || 0;
 
         // Calculate statutory deductions
         const shif = Math.round(basic * (rates.shif / 100));
         const ahl = Math.round(basic * (rates.ahl / 100));
-        const nssf = Math.min(basic * (rates.nssf / 100), 2160); // NSSF cap
+        
+        // If nssf is provided, use it directly; otherwise calculate it
+        if (nssf === 0) {
+            nssf = Math.min(basic * (rates.nssf / 100), 2160); // NSSF cap
+        }
 
         // Calculate taxable income
         let taxable = basic - nssf - shif - ahl;
@@ -159,9 +164,18 @@ class PayrollManager {
                                 style="width:110px" 
                                 value="${record.basic}"
                                 data-employee-id="${emp.id}"
-                                onchange="PayrollManager.updatePayroll(${emp.id}, this.value)">
+                                data-field="basic"
+                                onchange="PayrollManager.updatePayrollField(${emp.id}, 'basic', this.value)">
                     </td>
-                    <td>${record.nssf.toLocaleString()}</td>
+                    <td>
+                        <input type="number" 
+                                class="form-control form-control-sm payroll-input" 
+                                style="width:110px" 
+                                value="${record.nssf}"
+                                data-employee-id="${emp.id}"
+                                data-field="nssf"
+                                onchange="PayrollManager.updatePayrollField(${emp.id}, 'nssf', this.value)">
+                    </td>
                     <td>${record.shif.toLocaleString()}</td>
                     <td>${record.ahl.toLocaleString()}</td>
                     <td>${record.paye.toLocaleString()}</td>
@@ -301,43 +315,82 @@ class PayrollManager {
         payrollManager.renderPayrollTable();
     }
 
-    static updatePayroll(employeeId, basicAmount) {
+    static updatePayrollField(employeeId, field, value) {
         const payrollManager = new PayrollManager();
-        const result = PayrollManager.calculatePayroll(
-            basicAmount,
+        const currentRecord = StateManager.getPayrollRecord(
             employeeId,
-            payrollManager.currentMonth
-        );
+            payrollManager.currentMonth.year,
+            payrollManager.currentMonth.monthName
+        ) || { basic: 0, nssf: 0 };
+
+        // Update the specific field
+        currentRecord[field] = parseFloat(value) || 0;
+
+        // If updating basic, we need to recalculate everything
+        if (field === 'basic') {
+            // Get current NSSF value if it exists
+            const currentNssf = currentRecord.nssf || 0;
+            const result = PayrollManager.calculatePayroll(value, currentNssf, employeeId, payrollManager.currentMonth);
+            
+            // Save the updated record
+            StateManager.savePayrollRecord(
+                employeeId,
+                payrollManager.currentMonth.year,
+                payrollManager.currentMonth.monthName,
+                result
+            );
+        } else if (field === 'nssf') {
+            // If updating NSSF, recalculate based on current basic
+            const currentBasic = currentRecord.basic || 0;
+            const result = PayrollManager.calculatePayroll(currentBasic, value, employeeId, payrollManager.currentMonth);
+            
+            // Save the updated record
+            StateManager.savePayrollRecord(
+                employeeId,
+                payrollManager.currentMonth.year,
+                payrollManager.currentMonth.monthName,
+                result
+            );
+        }
 
         Utils.showToast('Payroll updated successfully', 'success');
 
         // Update the row immediately
-        const input = document.querySelector(`input[data-employee-id="${employeeId}"]`);
-        if (input) {
-            const row = input.closest('tr');
-            row.cells[2].textContent = result.nssf.toLocaleString();
-            row.cells[3].textContent = result.shif.toLocaleString();
-            row.cells[4].textContent = result.ahl.toLocaleString();
-            row.cells[5].textContent = result.paye.toLocaleString();
-            row.cells[6].textContent = result.net.toLocaleString();
+        const row = document.querySelector(`tr[data-employee-id="${employeeId}"]`);
+        if (row) {
+            const record = StateManager.getPayrollRecord(
+                employeeId,
+                payrollManager.currentMonth.year,
+                payrollManager.currentMonth.monthName
+            );
+
+            // Update all cells except basic and nssf (which are inputs)
+            row.cells[4].textContent = record.ahl.toLocaleString(); // Housing Levy
+            row.cells[5].textContent = record.paye.toLocaleString(); // PAYE
+            row.cells[6].textContent = record.net.toLocaleString(); // Net Pay
+
+            // Update SHIF cell (index 3)
+            row.cells[3].textContent = record.shif.toLocaleString();
 
             // Enable/disable buttons based on basic pay
             const viewBtn = row.querySelector('button.btn-outline-success');
-            const printBtn = row.querySelector('button.btn-outline-primary');
             const editBtn = row.querySelector('button.btn-outline-warning');
-            if (basicAmount > 0) {
+            if (record.basic > 0) {
                 viewBtn.disabled = false;
-                printBtn.disabled = false;
                 editBtn.disabled = false;
             } else {
                 viewBtn.disabled = true;
-                printBtn.disabled = true;
                 editBtn.disabled = true;
             }
         }
 
         // Update totals
         payrollManager.renderPayrollTable();
+    }
+
+    static updatePayroll(employeeId, basicAmount) {
+        // This is kept for backward compatibility with other code that might call it
+        this.updatePayrollField(employeeId, 'basic', basicAmount);
     }
 
     static showAddPayslipModal() {
@@ -378,6 +431,11 @@ class PayrollManager {
                                     <input type="number" id="payslipBasic" class="form-control" 
                                         placeholder="Enter basic salary" required>
                                 </div>
+                                <div class="mb-3">
+                                    <label class="form-label small fw-bold">NSSF Contribution (KES)</label>
+                                    <input type="number" id="payslipNSSF" class="form-control" 
+                                        placeholder="Enter NSSF amount (0 to calculate automatically)">
+                                </div>
                                 <div class="row mb-3">
                                     <div class="col-6">
                                         <label class="form-label small fw-bold">Benefits (KES)</label>
@@ -412,6 +470,7 @@ class PayrollManager {
         const employeeId = document.getElementById('payslipEmployee').value;
         const monthValue = document.getElementById('payslipMonth').value;
         const basic = parseFloat(document.getElementById('payslipBasic').value) || 0;
+        const nssf = parseFloat(document.getElementById('payslipNSSF').value) || 0;
         const benefits = parseFloat(document.getElementById('payslipBenefits').value) || 0;
         const quarters = parseFloat(document.getElementById('payslipQuarters').value) || 0;
 
@@ -436,7 +495,7 @@ class PayrollManager {
 
         // Calculate payroll
         const monthDetails = { year, monthName, monthIdx: parseInt(month) - 1, inputValue: monthValue };
-        const result = PayrollManager.calculatePayroll(basic, employeeId, monthDetails);
+        const result = PayrollManager.calculatePayroll(basic, nssf, employeeId, monthDetails);
 
         // Restore original settings
         settings.rates.benefits = originalBenefits;
@@ -521,6 +580,11 @@ class PayrollManager {
                                 <input type="number" id="editPayslipBasic" class="form-control" 
                                         value="${record.basic}" required>
                             </div>
+                            <div class="mb-3">
+                                <label class="form-label small fw-bold">NSSF Contribution (KES)</label>
+                                <input type="number" id="editPayslipNSSF" class="form-control" 
+                                        value="${record.nssf}">
+                            </div>
                             <div class="row mb-3">
                                 <div class="col-6">
                                     <label class="form-label small fw-bold">Benefits (KES)</label>
@@ -535,7 +599,7 @@ class PayrollManager {
                             </div>
                             <div class="alert alert-info small">
                                 <i class="bi bi-info-circle me-1"></i>
-                                Statutory deductions (NSSF, SHIF, Housing Levy, PAYE) will be recalculated automatically.
+                                Statutory deductions (SHIF, Housing Levy, PAYE) will be recalculated automatically.
                             </div>
                         </form>
                     </div>
@@ -557,6 +621,7 @@ class PayrollManager {
 
     static savePayslipEdit(employeeId, year, monthName) {
         const basic = parseFloat(document.getElementById('editPayslipBasic').value) || 0;
+        const nssf = parseFloat(document.getElementById('editPayslipNSSF').value) || 0;
         const benefits = parseFloat(document.getElementById('editPayslipBenefits').value) || 0;
         const quarters = parseFloat(document.getElementById('editPayslipQuarters').value) || 0;
 
@@ -584,7 +649,7 @@ class PayrollManager {
         StateManager.saveSettings(settings);
 
         // Calculate payroll with updated values
-        const result = PayrollManager.calculatePayroll(basic, employeeId, monthDetails);
+        const result = PayrollManager.calculatePayroll(basic, nssf, employeeId, monthDetails);
 
         // Restore original settings
         settings.rates.benefits = originalBenefits;
@@ -603,13 +668,16 @@ class PayrollManager {
         }
     }
 
-
-
     static generatePayslipModal(employee, payrollData, monthDetails) {
         // Calculate totals
         const grossPay = payrollData.basic + (payrollData.benefits || 0) + (payrollData.quarters || 0);
         const totalDeductions = (payrollData.nssf || 0) + (payrollData.shif || 0) +
             (payrollData.ahl || 0) + (payrollData.paye || 0);
+        
+        // Split NSSF into employer and employee contributions (50/50 split)
+        const nssfTotal = payrollData.nssf || 0;
+        const nssfEmployee = nssfTotal / 2;
+        const nssfEmployer = nssfTotal / 2;
 
         const modalContent = `
         <div class="modal fade" id="payslipModal" tabindex="-1" aria-labelledby="payslipModalLabel" aria-hidden="true">
@@ -702,10 +770,6 @@ class PayrollManager {
                                     </thead>
                                     <tbody>
                                         <tr>
-                                            <td>NSSF Contribution</td>
-                                            <td class="text-end">${(payrollData.nssf || 0).toLocaleString()}</td>
-                                        </tr>
-                                        <tr>
                                             <td>SHIF Contribution</td>
                                             <td class="text-end">${(payrollData.shif || 0).toLocaleString()}</td>
                                         </tr>
@@ -717,9 +781,21 @@ class PayrollManager {
                                             <td>PAYE Tax</td>
                                             <td class="text-end">${(payrollData.paye || 0).toLocaleString()}</td>
                                         </tr>
+                                        <tr>
+                                            <td>NSSF - Employee Contribution</td>
+                                            <td class="text-end">${nssfEmployee.toLocaleString()}</td>
+                                        </tr>
+                                        <tr>
+                                            <td>NSSF - Employer Contribution</td>
+                                            <td class="text-end">${nssfEmployer.toLocaleString()}</td>
+                                        </tr>
+                                        <tr>
+                                            <td><strong>Total NSSF Contribution (50/50 split)</strong></td>
+                                            <td class="text-end"><strong>${nssfTotal.toLocaleString()}</strong></td>
+                                        </tr>
                                         <tr class="table-danger">
-                                            <td><strong>TOTAL DEDUCTIONS</strong></td>
-                                            <td class="text-end"><strong>${totalDeductions.toLocaleString()}</strong></td>
+                                            <td><strong>TOTAL DEDUCTIONS (from salary)</strong></td>
+                                            <td class="text-end"><strong>${((payrollData.shif || 0) + (payrollData.ahl || 0) + (payrollData.paye || 0) + nssfEmployee).toLocaleString()}</strong></td>
                                         </tr>
                                     </tbody>
                                 </table>
